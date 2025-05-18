@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light"> <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokexgames Crafting Calculator</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-content">
+            <div class="header-title-container"> <h1>Calculadora de Craft - Pokexgames</h1>
+            </div>
+            <nav id="main-nav" class="main-navigation" role="navigation">
+                <button data-page="page-insert">Registrar Item</button>
+                <button data-page="page-calculate">Calcular Lucro</button>
+                <button data-page="page-edit">Gerenciar Itens</button>
+            </nav>
+            <button id="hamburger-button" aria-label="Abrir menu" aria-expanded="false">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <div id="page-insert" class="page-view" style="display: none;">
+             <h2 class="page-title">Registrar Novo Item Craftável</h2>
+             <form id="insert-form">
+                 <div class="form-group">
+                     <label for="insert-name">Nome do Item/Pack:</label>
+                     <input type="text" id="insert-name" name="name" required>
+                 </div>
+                 <div class="form-group">
+                     <label for="insert-quantity">Quantidade Produzida (pela receita):</label>
+                     <input type="number" id="insert-quantity" name="quantity_produced" value="1" min="1" required>
+                 </div>
+                 <div class="form-group">
+                     <label for="insert-npc-sell-price">Preço Venda NPC (pelo Pack/Receita):</label>
+                     <input type="number" id="insert-npc-sell-price" name="npc_sell_price" value="0" min="0">
+                 </div>
+                 <h3 class="sub-title">Materiais Necessários</h3>
+                 <div id="insert-materials-container" class="materials-container-grid"></div>
+                 <button type="button" id="add-material-button" class="button button-secondary">Adicionar Material</button>
+                 <hr>
+                 <button type="submit" class="button button-primary">Salvar Nova Receita</button>
+             </form>
+             <div id="insert-status" class="status-message"></div>
+        </div>
+
+        <div id="page-calculate" class="page-view" style="display: none;">
+             <div class="page-header-centered">
+                <h2 class="page-title">Calcular Lucro de Crafting</h2>
+                <p class="page-description">Selecione um item abaixo para calcular o lucro:</p>
+                <div class="search-container">
+                    <label for="calculate-item-search">Pesquisar Item:</label>
+                    <input type="text" id="calculate-item-search" placeholder="Digite o nome do item...">
+                </div>
+            </div>
+            <div id="calculate-item-list" class="item-card-container">
+                  <p id="calculate-loading-message" class="loading-text">Carregando itens...</p>
+            </div>
+            <div id="calculate-status" class="status-message"></div>
+        </div>
+
+        <div id="page-edit" class="page-view" style="display: none;">
+            <div class="page-header-centered">
+                <h2 class="page-title">Gerenciar Itens Registrados</h2>
+                <div class="search-container">
+                    <label for="edit-item-search">Pesquisar Item:</label>
+                    <input type="text" id="edit-item-search" placeholder="Digite o nome do item...">
+                </div>
+            </div>
+            <div id="edit-item-list" class="item-card-container">
+                  <p id="edit-loading-message" class="loading-text">Carregando itens...</p>
+            </div>
+            <div id="edit-status" class="status-message"></div>
+            <div id="edit-form-container" class="edit-form-section" style="display: none;"></div>
+        </div>
+    </main>
+
+    <div id="calculation-modal" class="modal" style="display: none;">
+         <div class="modal-content">
+             <span id="modal-close-button" class="close-button">&times;</span>
+             <h3 id="modal-item-name" class="modal-title">Calcular Custo: [Nome Item]</h3>
+             
+             <div class="modal-body-scrollable">
+                 <div class="form-group">
+                     <label for="modal-craft-quantity">Quantidade de Packs a Fabricar:</label>
+                     <input type="number" id="modal-craft-quantity" value="1" min="1">
+                     <span class="label-detail">(Total: <span id="modal-total-items-label">0</span> unidades)</span>
+                 </div>
+                 <h4 class="sub-title-small">Custos de Materiais (Preços de Mercado Atuais):</h4>
+                 <ul id="modal-materials-list" class="modal-materials"></ul>
+                 <h4 class="sub-title-small">Preços de Venda:</h4>
+                  <div class="form-group">
+                      <label for="modal-sell-price-market">Preço Venda Mercado (por Pack):</label>
+                      <input type="number" id="modal-sell-price-market" value="0" min="0">
+                  </div>
+                 <p class="info-text">Preço Venda NPC (por Pack Base): <strong id="modal-sell-price-npc-base">0</strong></p>
+                 <p class="label-detail">(Total NPC Estimado para <span id="modal-calc-packs-label-npc">1</span> pack(s): <strong id="modal-sell-price-npc-total">0</strong>)</p>
+             </div>
+             
+             <button id="modal-confirm-button" class="button button-primary modal-confirm-btn">Confirmar Cálculo</button>
+             <div id="modal-results" class="modal-results-area" style="display: none;">
+                  <h4 class="sub-title-small">Resultados do Cálculo (para <span id="modal-calc-packs-label-results">1</span> pack(s)):</h4>
+                  <p>Custo Total dos Materiais (Mercado): <strong id="modal-result-cost">0</strong></p>
+                  <p>Receita Total (Venda Mercado): <strong id="modal-result-revenue-market">0</strong></p>
+                  <p>Receita Total (Venda NPC): <strong id="modal-result-revenue-npc">0</strong></p>
+                  <p>Lucro/Prejuízo (Venda Mercado):
+                     <strong id="modal-result-profit-market">0</strong>
+                     <span id="modal-compensa-market"></span>
+                     <span id="modal-profit-percentage-market" class="profit-percentage"></span>
+                  </p>
+                  <p>Lucro/Prejuízo (Venda NPC):
+                     <strong id="modal-result-profit-npc">0</strong>
+                     <span id="modal-compensa-npc"></span>
+                     <span class="info-text-inline">(Referência)</span>
+                  </p>
+                  <p id="modal-result-profit-per-prof-mat-line" style="display: none; margin-top: 8px; font-style: italic;">
+                     Preço de cada <span class="prof-mat-name">Item</span>:
+                     <strong id="modal-result-profit-per-prof-mat">0</strong>
+                  </p>
+             </div>
+             <div id="modal-status" class="status-message"></div>
+         </div>
+    </div>
+
+    <div id="edit-item-modal" class="modal" style="display: none;">
+         <div class="modal-content">
+             <span id="edit-modal-close-button" class="close-button">&times;</span>
+             <h3 class="modal-title">Editando Item: <span id="edit-modal-item-title-name"></span></h3>
+             
+             <form id="edit-modal-form" class="modal-body-scrollable">
+                  <input type="hidden" id="edit-modal-item-id">
+                  <div class="form-group">
+                      <label for="edit-modal-name">Nome do Item/Pack:</label>
+                      <input type="text" id="edit-modal-name" name="name" required>
+                  </div>
+                  <div class="form-group">
+                      <label for="edit-modal-quantity">Quantidade Produzida:</label>
+                      <input type="number" id="edit-modal-quantity" name="quantity_produced" value="1" min="1" required>
+                  </div>
+                  <div class="form-group">
+                      <label for="edit-modal-npc-sell-price">Preço Venda NPC (Pack):</label>
+                      <input type="number" id="edit-modal-npc-sell-price" name="npc_sell_price" value="0" min="0">
+                  </div>
+                  <h4 class="sub-title-small">Materiais Necessários</h4>
+                  <div id="edit-modal-materials-container" class="materials-container-grid">
+                  </div>
+                  <button type="button" id="edit-modal-add-material-button" class="button button-secondary">Adicionar Material</button>
+                  <hr>
+             </form> 
+             
+             <div class="form-actions"> 
+                 <button type="submit" form="edit-modal-form" class="button button-primary">Salvar Alterações</button>
+                 <button type="button" id="edit-modal-cancel-button" class="button button-secondary">Cancelar Edição</button>
+             </div>
+             <div id="edit-modal-status" class="status-message"></div>
+         </div>
+    </div>
+
+    <footer class="main-footer">
+        <p>Status Global: <span id="global-status-message">Pronto.</span></p>
+    </footer>
+
+    <button id="dark-mode-toggle" title="Alternar tema claro/escuro">
+        🌙 </button>
+
+    <div id="item-preview-modal" class="item-preview-modal" style="display: none;">
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
