@@ -21,7 +21,7 @@ let resolvedApiBaseUrl;
 if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
     resolvedApiBaseUrl = 'http://localhost:3000/api';
 } else {
-    resolvedApiBaseUrl = 'https://apiraitocraft.onrender.com/api';
+    resolvedApiBaseUrl = 'https://apiraitocraft-07k1.onrender.com/api';
 }
 const API_BASE_URL = resolvedApiBaseUrl;
 
