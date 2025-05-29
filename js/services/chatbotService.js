@@ -82,8 +82,7 @@ const tools = [
           properties: {
             maxItemsToShow: {
               type: 'NUMBER',
-              description: 'Número máximo de nomes de itens a serem retornados na lista. Padrão é 15 se não especificado.',
-              optional: true
+              description: 'Número máximo de nomes de itens a serem retornados na lista. Padrão é 15 se não especificado.'
             }
           }
         }
@@ -167,7 +166,6 @@ const tools = [
             userMaterials: {
               type: 'ARRAY',
               description: 'Uma lista de materiais que o usuário possui e suas quantidades. Se omitido ou vazio, analisa todas as receitas mostrando o que é necessário para cada uma.',
-              optional: true,
               items: {
                 type: 'OBJECT',
                 description: 'Um material que o usuário possui.',
@@ -340,7 +338,7 @@ async function callApiFunction(functionName, args) {
             apiData = await response.json();
         } catch (jsonError) {
             console.error(`[callApiFunction] Erro ao parsear JSON da API externa ${endpoint} para função ${functionName}:`, jsonError);
-            const textResponse = await response.text(); // Tenta ler como texto para log
+            const textResponse = await response.text();
             console.error(`[callApiFunction] Resposta da API (texto) ${endpoint}:`, textResponse);
             return { success: false, error: `Erro ao processar resposta da API (${functionName} em ${endpoint}): Formato JSON inválido.` };
         }
