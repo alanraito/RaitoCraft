@@ -3,13 +3,16 @@
   Descrição: Este módulo é responsável por toda a lógica de interação com a API do Gemini
   e por orquestrar as chamadas para APIs externas (RaitoCraft e PokeAPI) com base nas
   solicitações do modelo de linguagem. Ele define as ferramentas (funções) que o Gemini
-  pode chamar, processa as respostas e gerencia o histórico da conversa para o chat.
+  pode chamar (como buscar receitas por nome de item ou por material), processa as respostas
+  e gerencia o histórico da conversa para o chat, incluindo instruções no prompt do sistema
+  para lidar com respostas e erros de API.
   Principais Funções:
-  - initChatbot: Inicializa o chatbot, configurando a API Key do Gemini.
+  - initChatbot: Inicializa o chatbot, configurando a API Key do Gemini e o prompt do sistema com diretrizes de comportamento.
   - sendMessageToGemini: Envia a mensagem do usuário para o Gemini, incluindo o histórico
                          e as ferramentas disponíveis, e processa a resposta.
   - callApiFunction: Executa a chamada para a API backend do RaitoCraft ou PokeAPI quando
-                     solicitado pelo Gemini através de uma function call.
+                     solicitado pelo Gemini através de uma function call. Retorna uma estrutura
+                     padronizada indicando sucesso ou falha e os dados ou erro correspondente.
   Variáveis Globais:
   - generativeModel: Instância do modelo generativo do Gemini.
   - chat: Instância da sessão de chat com o Gemini, mantendo o histórico.
@@ -28,6 +31,20 @@ let chat;
 const tools = [
   {
     functionDeclarations: [
+      {
+        name: 'getRecipeByName',
+        description: "Obtém os detalhes completos de uma receita de craft, incluindo seus materiais, com base no nome do item produzido. Use para perguntas como 'Quais são os materiais para [nome do item]?' ou 'Como faço [nome do item]?' ou 'Que itens eu utilizo para fazer [nome do item]?'.",
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            itemName: {
+              type: 'STRING',
+              description: 'O nome exato do item cuja receita (incluindo materiais) deve ser buscada (ex: "Beast Ball", "Ice Sword").'
+            }
+          },
+          required: ['itemName']
+        }
+      },
       {
         name: 'findCraftsByMaterial',
         description: 'Obtém uma lista de todos os itens de craft (receitas) que são feitos usando um material específico. Ideal para responder perguntas como "O que posso fazer com [nome do material]?" ou "Quais crafts usam [nome do material]?".',
@@ -147,11 +164,11 @@ export async function initChatbot() {
       history: [
         {
           role: "user",
-          parts: [{ text: "Você é o RaitoCraft Assistant, um chatbot especializado em ajudar usuários com cálculos e informações sobre crafting de itens no jogo Pokexgames, baseado nos dados da API RaitoCraft, e também pode fornecer informações sobre Pokémon utilizando a PokeAPI. Suas respostas devem ser amigáveis, úteis e focadas nos contextos do jogo, do crafting e do universo Pokémon. Você pode usar as ferramentas disponíveis para buscar informações atualizadas das APIs quando necessário." }],
+          parts: [{ text: "Você é o RaitoCraft Assistant, um chatbot especializado em ajudar usuários com cálculos e informações sobre crafting de itens no jogo Pokexgames, baseado nos dados da API RaitoCraft, e também pode fornecer informações sobre Pokémon utilizando a PokeAPI. Suas respostas devem ser amigáveis, úteis e focadas nos contextos do jogo, do crafting e do universo Pokémon. Você pode usar as ferramentas disponíveis para buscar informações atualizadas das APIs quando necessário. Se uma função da API retornar uma lista vazia (por exemplo, nenhum item encontrado), você deve informar explicitamente ao usuário que nada foi encontrado com os critérios fornecidos, em vez de dizer que a função não retornou dados utilizáveis. Se uma função da API falhar e retornar um erro, você deve informar ao usuário sobre o erro específico que ocorreu ao tentar acessar os dados (por exemplo, 'Houve um problema ao contatar a API: [detalhes do erro]'), em vez de pedir para o usuário fornecer os dados ou executar comandos." }],
         },
         {
           role: "model",
-          parts: [{ text: "Entendido! Estou pronto para ajudar os jogadores de Pokexgames com seus crafts e também para responder perguntas sobre o universo Pokémon. Podem perguntar!" }],
+          parts: [{ text: "Entendido! Estou pronto para ajudar os jogadores de Pokexgames com seus crafts e também para responder perguntas sobre o universo Pokémon. Se a API não encontrar nada para uma busca, informarei claramente que nenhum resultado correspondeu. Se ocorrer um erro ao tentar buscar os dados, informarei sobre a falha. Podem perguntar!" }],
         }
       ],
     });
@@ -168,9 +185,14 @@ async function callApiFunction(functionName, args) {
   let method = 'GET';
   let body = null;
   let queryParams = new URLSearchParams();
+  let requiresOnlineFetch = true;
 
   try {
     switch (functionName) {
+      case 'getRecipeByName':
+        if (!args.itemName) throw new Error("Nome do item é obrigatório para getRecipeByName.");
+        endpoint = `${RAITOCRAFT_API_BASE_URL}/items`;
+        break;
       case 'findCraftsByMaterial':
         if (!args.materialName) throw new Error("Nome do material é obrigatório para findCraftsByMaterial.");
         queryParams.append('materialName', args.materialName);
@@ -206,34 +228,47 @@ async function callApiFunction(functionName, args) {
         break;
       case 'getPokemonDetails':
         if (!args.pokemonName) throw new Error("Nome do Pokémon é obrigatório para getPokemonDetails.");
-        // A PokeAPI espera o nome do Pokémon em minúsculas na URL.
         endpoint = `${POKEAPI_BASE_URL}/pokemon/${args.pokemonName.toLowerCase()}`;
         break;
       default:
         console.error(`Função desconhecida: ${functionName}`);
-        return { error: `Função desconhecida: ${functionName}` };
+        return { success: false, error: `Função desconhecida: ${functionName}` };
     }
 
-    console.log(`Chamando API: ${method} ${endpoint}`);
-    const headers = { 'Content-Type': 'application/json' };
-    const response = await fetch(endpoint, {
-      method: method,
-      headers: method === 'POST' ? headers : {},
-      body: body,
-    });
+    let apiData;
+    if (requiresOnlineFetch) {
+        console.log(`Chamando API: ${method} ${endpoint}`);
+        const headers = { 'Content-Type': 'application/json' };
+        const response = await fetch(endpoint, {
+          method: method,
+          headers: method === 'POST' ? headers : {},
+          body: body,
+        });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error(`Erro da API externa (${response.status}) [${functionName}]:`, errorData);
-      return { error: `Erro ao chamar API externa (${functionName}): ${response.status} - ${errorData || response.statusText}` };
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error(`Erro da API externa (${response.status}) [${functionName}]:`, errorData);
+          return { success: false, error: `Erro ao chamar API externa (${functionName}): ${response.status} - ${errorData || response.statusText}` };
+        }
+        apiData = await response.json();
+        console.log(`Dados recebidos da API externa (${functionName}):`, apiData);
     }
-    const data = await response.json();
-    console.log(`Dados recebidos da API externa (${functionName}):`, data);
-    return data;
+
+    if (functionName === 'getRecipeByName') {
+        const itemNameLower = args.itemName.toLowerCase();
+        const foundItem = apiData.find(item => item.name.toLowerCase() === itemNameLower);
+        if (foundItem) {
+            return { success: true, data: foundItem };
+        } else {
+            return { success: true, data: null };
+        }
+    }
+    
+    return { success: true, data: apiData };
 
   } catch (error) {
     console.error(`Erro ao executar a função ${functionName} ou chamar a API:`, error);
-    return { error: `Erro interno ao processar ${functionName}: ${error.message}` };
+    return { success: false, error: `Erro interno ao processar ${functionName}: ${error.message}` };
   }
 }
 
@@ -255,11 +290,13 @@ export async function sendMessageToGemini(message) {
       console.log("Gemini solicitou chamada de função:", functionCall.name, "com args:", functionCall.args);
       const apiResponse = await callApiFunction(functionCall.name, functionCall.args);
 
+      console.log("Enviando FunctionResponse para Gemini:", JSON.stringify({ name: functionCall.name, response: apiResponse }, null, 2));
+
       const functionCallResult = await chat.sendMessage([
         {
           functionResponse: {
             name: functionCall.name,
-            response: apiResponse,
+            response: apiResponse, 
           },
         },
       ]);

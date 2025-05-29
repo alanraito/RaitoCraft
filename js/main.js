@@ -4,7 +4,8 @@
   Ele gerencia a inicialização geral da aplicação, a navegação entre as diferentes "páginas" (views),
   o controle do tema (claro/escuro) e a interatividade do menu de navegação (incluindo o menu hambúrguer
   para dispositivos móveis). Também implementa a funcionalidade de swipe para navegação em telas sensíveis ao toque,
-  o comportamento de ocultar/mostrar o header ao rolar a página, e a interface/lógica do chatbot.
+  o comportamento de ocultar/mostrar o header ao rolar a página, e a interface/lógica do chatbot,
+  incluindo feedback visual durante o processamento de mensagens.
   Principais Funções:
   - initializeApp: Ponto de entrada que configura os listeners de eventos globais, carrega a view inicial e inicializa o chatbot.
   - navigateTo: Controla a transição animada entre as diferentes views (Inserir, Calcular, Editar).
@@ -15,7 +16,8 @@
   - initializeChatbotUI: Configura listeners para a UI do chat e interações com o chatbotService.
   - toggleChatbotWindow: Alterna a visibilidade da janela do chatbot.
   - displayChatMessage: Adiciona uma mensagem (usuário ou bot) na área de mensagens do chat.
-  - handleSendMessage: Pega a mensagem do usuário, envia para o chatbotService e exibe as respostas.
+  - handleSendMessage: Pega a mensagem do usuário, envia para o chatbotService e exibe as respostas,
+                       mostrando um indicador de "digitando" durante o processamento.
   Módulos Importados:
   - initInsertView, initCalculateView, initEditView: Funções de inicialização para cada view específica.
   - ui (de ui.js): Funções utilitárias para a UI.
@@ -23,10 +25,10 @@
   Constantes Globais:
   - Elementos DOM para páginas, navegação, header, container e chatbot.
 */
-import { initInsertView } from './views/insertView.js'; //
-import { initCalculateView } from './views/calculateView.js'; //
-import { initEditView } from './views/editView.js'; //
-import * as ui from './ui.js'; //
+import { initInsertView } from './views/insertView.js';
+import { initCalculateView } from './views/calculateView.js';
+import { initEditView } from './views/editView.js';
+import * as ui from './ui.js';
 import * as chatbotService from './services/chatbotService.js';
 
 const pages = {
@@ -139,19 +141,16 @@ function handleSwipeGesture() {
     }
 }
 
-function displayChatMessage(message, type = 'bot') {
+function displayChatMessage(message, type = 'bot', id = null) {
     if (!chatbotMessagesArea) return;
     const messageDiv = document.createElement('div');
+    if (id) {
+        messageDiv.id = id;
+    }
     messageDiv.classList.add('chatbot-message', type);
-    // Para renderizar Markdown básico (negrito, itálico, listas, links) de forma segura
-    // Você pode usar uma biblioteca como 'marked' ou um sanitizador DOM mais robusto se precisar de HTML complexo.
-    // Por simplicidade, vamos apenas setar textContent por enquanto, ou um innerHTML simples para quebras de linha.
-    // Para markdown mais completo, você precisaria parsear `message` e construir o HTML.
-    // Exemplo simples para quebras de linha:
-    messageDiv.innerHTML = message.replace(/\n/g, '<br>'); // Simples, cuidado com XSS se a mensagem vier de fontes não confiáveis diretamente.
-                                                        // A resposta do Gemini deve ser segura, mas é bom ter em mente.
+    messageDiv.innerHTML = message.replace(/\n/g, '<br>');
     chatbotMessagesArea.appendChild(messageDiv);
-    chatbotMessagesArea.scrollTop = chatbotMessagesArea.scrollHeight; // Auto-scroll
+    chatbotMessagesArea.scrollTop = chatbotMessagesArea.scrollHeight;
 }
 
 async function handleSendMessage() {
@@ -164,12 +163,17 @@ async function handleSendMessage() {
     chatbotInput.disabled = true;
     chatbotSendButton.disabled = true;
     isChatbotProcessing = true;
-    displayChatMessage("Pensando...", 'bot-typing'); // Feedback de digitação
+    
+    const typingIndicatorId = 'bot-typing-indicator';
+    displayChatMessage("RaitoCraft Assistant está digitando", 'bot-typing', typingIndicatorId);
 
     try {
         const response = await chatbotService.sendMessageToGemini(messageText);
-        const typingIndicator = chatbotMessagesArea.querySelector('.bot-typing');
-        if(typingIndicator) typingIndicator.remove();
+        
+        const typingIndicator = document.getElementById(typingIndicatorId);
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
 
         if (response.text) {
             displayChatMessage(response.text, 'bot');
@@ -180,8 +184,10 @@ async function handleSendMessage() {
             displayChatMessage("Não obtive uma resposta clara, tente novamente.", 'bot');
         }
     } catch (error) {
-        const typingIndicator = chatbotMessagesArea.querySelector('.bot-typing');
-        if(typingIndicator) typingIndicator.remove();
+        const typingIndicator = document.getElementById(typingIndicatorId);
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
         displayChatMessage(`Erro crítico ao processar sua mensagem: ${error.message}`, 'bot');
         console.error("Erro em handleSendMessage:", error);
     } finally {
@@ -223,8 +229,8 @@ async function initializeChatbotUI() {
     if (chatbotSendButton && chatbotInput) {
         chatbotSendButton.addEventListener('click', handleSendMessage);
         chatbotInput.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter' && !event.shiftKey) { // Envia com Enter, permite Shift+Enter para nova linha
-                event.preventDefault(); // Previne nova linha no input se não for Shift+Enter
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
                 handleSendMessage();
             }
         });
@@ -232,9 +238,6 @@ async function initializeChatbotUI() {
     
     try {
         await chatbotService.initChatbot();
-        // A mensagem inicial do bot já é adicionada no HTML,
-        // mas você pode querer uma mensagem dinâmica após a inicialização bem-sucedida.
-        // displayChatMessage("Olá! Sou o RaitoCraft Assistant. Como posso ajudar?", 'bot');
     } catch (error) {
         console.error("Falha ao inicializar o chatbotService no main.js:", error);
         displayChatMessage(`Não foi possível iniciar o assistente: ${error.message}. Verifique sua API Key do Gemini.`, 'bot');
