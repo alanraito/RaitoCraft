@@ -1,606 +1,446 @@
 /*
-  Arquivo: server.js
-  Descrição: Este arquivo configura e executa o servidor backend da aplicação Calculadora de Craft Pokexgames.
-  Ele utiliza Express.js para roteamento e manipulação de requisições HTTP, e SQLite como banco de dados
-  para persistir as receitas dos itens. O servidor expõe uma API RESTful para operações CRUD (Create, Read,
-  Update, Delete) sobre as receitas, além de rotas analíticas.
-  Principais Funcionalidades:
-  - Conexão e Inicialização do Banco de Dados: Estabelece a conexão com o arquivo de banco de dados SQLite
-    (criando-o se não existir) e executa um schema SQL (`schema.sql`) para garantir que as tabelas
-    necessárias (`recipes` e `recipe_materials`) estejam presentes.
-  - Middlewares: Utiliza `cors` para permitir requisições de diferentes origens (Cross-Origin Resource Sharing)
-    e `express.json()` para parsear corpos de requisição no formato JSON.
-  - Rotas da API:
-    - GET /api/items: Retorna uma lista de todos os itens craftáveis, incluindo seus materiais.
-    - GET /api/items/:id/recipe: Retorna os detalhes completos de uma receita específica, incluindo seus materiais.
-    - GET /api/items/name/:name: Busca um item pelo nome e retorna seu preço NPC.
-    - POST /api/items: Cria uma nova receita de item.
-    - PUT /api/items/:id: Atualiza uma receita de item existente.
-    - DELETE /api/items/:id: Remove uma receita de item.
-    - GET /api/items/by-material: Retorna itens que usam um material específico.
-    - GET /api/items/most-profitable-npc: Retorna itens ordenados por lucratividade considerando apenas preços NPC.
-    - GET /api/items/filter-by-material-profile: Filtra itens com base no perfil de tipo de seus materiais.
-    - GET /api/materials/usage-summary: Fornece um sumário do uso de materiais em todas as receitas.
-    - POST /api/crafting/check-possibilities: Verifica quais itens podem ser fabricados com base nos materiais fornecidos pelo usuário.
-    - POST /api/crafting/analyze-potential-crafts: (NOVO) Analisa receitas que usam os materiais fornecidos, detalhando materiais faltantes e crafts possíveis.
-    - GET /health: Uma rota simples para verificar a saúde do servidor.
-  - Tratamento de Erro: Um middleware genérico para capturar e responder a erros não tratados.
-  - Inicialização do Servidor: Inicia o servidor Express para escutar na porta configurada (padrão 3000).
-  Dependências:
-  - express: Framework web para Node.js.
-  - sqlite3: Driver para interagir com o banco de dados SQLite.
-  - cors: Middleware para habilitar CORS.
-  - path, fs: Módulos nativos do Node.js para manipulação de caminhos de arquivo e sistema de arquivos.
+  Arquivo: chatbotService.js
+  Descrição: Este módulo é responsável por toda a lógica de interação com a API do Gemini
+  e por orquestrar as chamadas para APIs externas (RaitoCraft e PokeAPI) com base nas
+  solicitações do modelo de linguagem. Ele define um conjunto abrangente de ferramentas (funções)
+  que o Gemini pode chamar para responder a diversas perguntas sobre receitas de craft,
+  materiais, lucratividade, e informações de Pokémon. O módulo processa as respostas e gerencia
+  o histórico da conversa, incluindo instruções detalhadas no prompt do sistema para lidar com
+  respostas, dados vazios e erros de API de forma clara e direta.
+  Principais Funções:
+  - initChatbot: Inicializa o chatbot, configurando a API Key do Gemini e o prompt do sistema com diretrizes de comportamento.
+  - sendMessageToGemini: Envia a mensagem do usuário para o Gemini, incluindo o histórico
+                         e as ferramentas disponíveis, e processa a resposta.
+  - callApiFunction: Executa a chamada para a API backend do RaitoCraft ou PokeAPI quando
+                     solicitado pelo Gemini através de uma function call. Retorna uma estrutura
+                     padronizada indicando sucesso ou falha e os dados ou erro correspondente.
+  Variáveis Globais:
+  - generativeModel: Instância do modelo generativo do Gemini.
+  - chat: Instância da sessão de chat com o Gemini, mantendo o histórico.
+  - API_KEY: Chave da API do Google AI Studio (Gemini).
+  - RAITOCRAFT_API_BASE_URL: URL base da API backend do RaitoCraft.
+  - POKEAPI_BASE_URL: URL base da PokeAPI.
 */
-const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-const dbBasePath = fs.existsSync('/data') ? '/data' : __dirname;
-const DB_FILE = path.join(__dirname, 'database.db');
-console.log(`[DB Init] Arquivo do banco de dados será salvo em: ${DB_FILE}`);
+const API_KEY = 'AIzaSyDWUmg0Q2weO3aXf3ivmHFbNmLZAtwEj0Q'; // Substitua pela sua API Key real
+const RAITOCRAFT_API_BASE_URL = 'https://apiraitocraft-07k1.onrender.com/api';
+const POKEAPI_BASE_URL = 'https://pokeapi.co/api/v2';
 
-const db = new sqlite3.Database(DB_FILE, (err) => {
-    if (err) {
-        console.error("Erro ao conectar ao banco de dados SQLite:", err.message);
-        return;
+let generativeModel;
+let chat;
+
+const tools = [
+  {
+    functionDeclarations: [
+      {
+        name: 'getRecipeByName',
+        description: "Obtém os detalhes completos de uma receita de craft, incluindo nome do item, quantidade produzida, preço de venda NPC e todos os seus materiais (com nome, quantidade, tipo e preço NPC do material). Use para perguntas como 'Quais são os materiais para [nome do item]?', 'Como faço [nome do item]?', 'Qual a receita de [nome do item]?' ou 'Que itens eu utilizo para fazer [nome do item]?'.",
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            itemName: {
+              type: 'STRING',
+              description: 'O nome exato do item cuja receita (incluindo materiais) deve ser buscada (ex: "Beast Ball", "Ice Sword").'
+            }
+          },
+          required: ['itemName']
+        }
+      },
+      {
+        name: 'findCraftsByMaterial',
+        description: 'Obtém uma lista de todos os itens de craft (receitas) que são feitos usando um material específico. A resposta inclui os detalhes dos itens encontrados. Ideal para responder perguntas como "O que posso fazer com [nome do material]?", "Quais crafts usam [nome do material]?" ou "Para que serve [nome do material] em crafts?".',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            materialName: {
+              type: 'STRING',
+              description: 'O nome exato do material a ser pesquisado (ex: "Ice Crystal", "Dragon Scale").'
+            }
+          },
+          required: ['materialName']
+        }
+      },
+      {
+        name: 'getItemNpcSellPrice',
+        description: "Obtém o preço de venda para NPC de um item craftável específico (o item final, não seus materiais). Útil para perguntas como 'Quanto o NPC paga por [NomeDoItem]?', 'Qual o valor de [NomeDoItem] no NPC?' ou 'Preço NPC do [NomeDoItem]'.",
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            itemName: {
+              type: 'STRING',
+              description: 'O nome exato do item cujo preço de venda NPC deve ser buscado.'
+            }
+          },
+          required: ['itemName']
+        }
+      },
+      {
+        name: 'listAllCraftableItems',
+        description: "Lista os nomes de itens que podem ser criados (craftados) no jogo. Útil para perguntas como 'Quais são todos os itens craftáveis?', 'Mostre-me a lista de crafts disponíveis' ou 'Que itens posso fazer?'. A resposta pode ser limitada aos primeiros itens se a lista for muito longa, informando o total de itens existentes.",
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            maxItemsToShow: {
+              type: 'NUMBER',
+              description: 'Número máximo de nomes de itens a serem retornados na lista. Padrão é 15 se não especificado.',
+              optional: true
+            }
+          }
+        }
+      },
+      {
+        name: 'getMostProfitableItemsByNpcPrice',
+        description: 'Calcula e retorna uma lista dos itens de craft mais lucrativos para fabricar, considerando que todos os materiais são obtidos ou avaliados por seus preços de NPC e o item final é vendido também pelo preço de NPC. Os itens são listados do mais lucrativo para o menos. Útil para perguntas como "Qual item dá mais lucro vendendo pra NPC?", "O que compensa mais fazer com preços de NPC?" ou "Quais os crafts mais rentáveis baseados em NPC?".',
+        parameters: { type: 'OBJECT', properties: {} }
+      },
+      {
+        name: 'filterItemsByMaterialProfile',
+        description: 'Filtra e retorna itens de craft com base no perfil de tipo de seus materiais. Por exemplo, itens feitos exclusivamente com materiais de profissão, ou itens que não usam materiais de drop, ou que precisam de materiais comprados. Use para perguntas como "Quais itens só usam materiais de profissão?", "Liste crafts sem materiais de drop", "Quais itens usam materiais comprados?" ou "Filtre itens por tipo de material [tipo/perfil]".',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            materialTypes: {
+              type: 'STRING',
+              description: 'Uma string contendo os tipos de materiais a considerar, separados por vírgula (ex: "profession", ou "drop,buy", ou "profession,drop"). Os tipos válidos são "profession", "drop", "buy".'
+            },
+            matchProfile: {
+              type: 'STRING',
+              description: 'Como os tipos de materiais devem corresponder. Valores válidos: "exclusive" (todos os materiais da receita devem ser de um dos materialTypes), "contains_any" (a receita deve conter pelo menos um material de qualquer um dos materialTypes), "contains_all" (a receita deve conter pelo menos um material de cada um dos materialTypes, se múltiplos forem fornecidos), "not_contains_any" (nenhum material da receita deve ser de um dos materialTypes). O padrão é "exclusive" se não especificado.',
+              enum: ['exclusive', 'contains_any', 'contains_all', 'not_contains_any']
+            }
+          },
+          required: ['materialTypes']
+        }
+      },
+      {
+        name: 'getMaterialUsageSummary',
+        description: 'Fornece um sumário do uso de materiais em todas as receitas, incluindo a quantidade total necessária do material e em quantas receitas diferentes ele é usado. Pode ser filtrado por nome de material ou tipo de material. Útil para perguntas como "Qual a demanda total por [nome do material]?", "Quantos [nome do material] são usados no total?" ou "Quais materiais do tipo [tipo] são mais usados?".',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            materialName: {
+              type: 'STRING',
+              description: 'O nome (ou parte do nome) de um material específico para filtrar o sumário (ex: "Essence of Fire"). Opcional.'
+            },
+            materialTypes: {
+              type: 'STRING',
+              description: 'Tipos de materiais a considerar para o sumário, separados por vírgula (ex: "drop", "buy,profession"). Opcional. Se omitido, considera todos os tipos.'
+            }
+          },
+        }
+      },
+      {
+        name: 'checkCraftingPossibilities',
+        description: 'Verifica quais itens de craft podem ser fabricados AGORA com base em uma lista de materiais que o usuário possui e a quantidade de cada um. Responde a perguntas como "Tenho 20 X e 10 Y, o que posso fazer e quantos?", "Com estes materiais [lista de materiais e quantidades], o que consigo fazer?" ou "Verifique minhas possibilidades de craft atuais".',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            availableMaterials: {
+              type: 'ARRAY',
+              description: 'Uma lista de materiais que o usuário possui.',
+              items: {
+                type: 'OBJECT',
+                description: 'Um material que o usuário possui.',
+                properties: {
+                  material_name: {
+                    type: 'STRING',
+                    description: 'Nome do material que o usuário possui (ex: "Ice Crystal").'
+                  },
+                  quantity: {
+                    type: 'NUMBER',
+                    description: 'Quantidade desse material que o usuário possui (ex: 20).'
+                  }
+                },
+                required: ["material_name", "quantity"]
+              }
+            }
+          },
+          required: ['availableMaterials']
+        }
+      },
+      {
+        name: 'analyzeCraftingPotential',
+        description: "Analisa receitas que podem ser relevantes com base nos materiais que o usuário possui, mesmo que não sejam suficientes para completar o craft. Detalha, para cada receita aplicável, todos os materiais necessários, quanto o usuário possui de cada um, e quanto falta para um craft. Também informa quantos crafts podem ser feitos imediatamente. Use para perguntas como 'Tenho [Material A] e [QtdA] de [MaterialA], o que mais preciso para fazer outros itens?' ou 'Com [Material A] e [Material B], quais crafts posso começar e o que faltaria?'. Se o usuário não especificar materiais, pode analisar todas as receitas.",
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            userMaterials: {
+              type: 'ARRAY',
+              description: 'Uma lista de materiais que o usuário possui e suas quantidades. Se omitido ou vazio, analisa todas as receitas mostrando o que é necessário para cada uma.',
+              optional: true,
+              items: {
+                type: 'OBJECT',
+                description: 'Um material que o usuário possui.',
+                properties: {
+                  material_name: {
+                    type: 'STRING',
+                    description: 'Nome do material que o usuário possui (ex: "Iron Ore").'
+                  },
+                  quantity: {
+                    type: 'NUMBER',
+                    description: 'Quantidade desse material que o usuário possui (ex: 50).'
+                  }
+                },
+                required: ["material_name", "quantity"]
+              }
+            }
+          }
+        }
+      },
+      {
+        name: 'getPokemonDetails',
+        description: 'Obtém informações detalhadas sobre um Pokémon específico da PokeAPI, como seus tipos, habilidades, estatísticas base e número da Pokédex. Ideal para perguntas como "Quais são os tipos do Pikachu?" ou "Me fale sobre o Charizard.". O nome do Pokémon deve ser fornecido em letras minúsculas.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            pokemonName: {
+              type: 'STRING',
+              description: 'O nome do Pokémon a ser pesquisado (ex: "pikachu", "charizard"). Deve ser em letras minúsculas.'
+            }
+          },
+          required: ['pokemonName']
+        }
+      }
+    ]
+  }
+];
+
+
+export async function initChatbot() {
+  if (!API_KEY || API_KEY === 'SUA_API_KEY_GEMINI') {
+    console.error("API Key do Gemini não configurada em chatbotService.js. Por favor, adicione sua chave.");
+    throw new Error("API Key do Gemini não configurada.");
+  }
+  try {
+    const { GoogleGenerativeAI } = await import('https://esm.run/@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(API_KEY);
+    generativeModel = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash-latest",
+      tools: tools,
+    });
+    chat = generativeModel.startChat({
+      history: [
+        {
+          role: "user",
+          parts: [{ text: "Você é o RaitoCraft Assistant, um chatbot especializado em ajudar usuários com cálculos e informações sobre crafting de itens no jogo Pokexgames, baseado nos dados da API RaitoCraft, e também pode fornecer informações sobre Pokémon utilizando a PokeAPI. Suas respostas devem ser amigáveis, úteis e focadas nos contextos do jogo, do crafting e do universo Pokémon. Você pode usar as ferramentas disponíveis para buscar informações atualizadas das APIs quando necessário. Se uma função da API retornar uma lista vazia (por exemplo, nenhum item encontrado para `getRecipeByName` ou `findCraftsByMaterial`), você deve informar explicitamente ao usuário que 'Nenhum item/receita foi encontrado com os critérios fornecidos para [nome da função].'. Se uma função da API falhar e retornar um erro, você deve informar ao usuário sobre o erro específico que ocorreu ao tentar acessar os dados (por exemplo, 'Houve um problema ao contatar a API ao usar [nome da função]: [detalhes do erro]'), em vez de pedir para o usuário fornecer os dados ou executar comandos. Após uma chamada de função bem-sucedida que retorna dados, apresente esses dados diretamente ao usuário de forma clara e concisa. Não faça introduções vagas como 'A API retornou os seguintes dados:' se você não for apresentar os dados imediatamente ou se for tentar chamar a função novamente. Ao usar 'analyzeCraftingPotential', para cada receita retornada, liste o nome da receita, os materiais necessários, quantos o usuário possui de cada, e quantos faltam para um craft. Indique também quantos crafts completos daquela receita são possíveis no momento com os materiais fornecidos pelo usuário." }],
+        },
+        {
+          role: "model",
+          parts: [{ text: "Entendido! Estou pronto para ajudar os jogadores de Pokexgames com seus crafts e também para responder perguntas sobre o universo Pokémon. Se a API não encontrar nada para uma busca, informarei claramente que nenhum resultado correspondeu à função específica. Se ocorrer um erro ao tentar buscar os dados, informarei sobre a falha detalhada da função. Se a busca for bem-sucedida, apresentarei os dados diretamente, incluindo detalhes de materiais faltantes quando relevante. Podem perguntar!" }],
+        }
+      ],
+    });
+    console.log("Chatbot Gemini inicializado com sucesso.");
+  } catch (error) {
+    console.error("Erro ao inicializar o GoogleGenerativeAI:", error);
+    throw new Error("Falha ao inicializar o serviço de IA.");
+  }
+}
+
+async function callApiFunction(functionName, args) {
+  console.log(`[callApiFunction] Iniciando chamada para: ${functionName} com args:`, args);
+  let endpoint = '';
+  let method = 'GET';
+  let body = null;
+  let queryParams = new URLSearchParams();
+  let requiresOnlineFetch = true;
+
+  try {
+    switch (functionName) {
+      case 'getRecipeByName':
+        if (!args.itemName) {
+            console.error("[callApiFunction] getRecipeByName: Nome do item não fornecido.");
+            throw new Error("Nome do item é obrigatório para getRecipeByName.");
+        }
+        endpoint = `${RAITOCRAFT_API_BASE_URL}/items`;
+        break;
+      case 'findCraftsByMaterial':
+        if (!args.materialName) {
+            console.error("[callApiFunction] findCraftsByMaterial: Nome do material não fornecido.");
+            throw new Error("Nome do material é obrigatório para findCraftsByMaterial.");
+        }
+        queryParams.append('materialName', args.materialName);
+        endpoint = `${RAITOCRAFT_API_BASE_URL}/items/by-material?${queryParams.toString()}`;
+        break;
+      case 'getItemNpcSellPrice':
+        if (!args.itemName) {
+            console.error("[callApiFunction] getItemNpcSellPrice: Nome do item não fornecido.");
+            throw new Error("Nome do item é obrigatório para getItemNpcSellPrice.");
+        }
+        endpoint = `${RAITOCRAFT_API_BASE_URL}/items/name/${encodeURIComponent(args.itemName)}`;
+        break;
+      case 'listAllCraftableItems':
+        endpoint = `${RAITOCRAFT_API_BASE_URL}/items`;
+        break;
+      case 'getMostProfitableItemsByNpcPrice':
+        endpoint = `${RAITOCRAFT_API_BASE_URL}/items/most-profitable-npc`;
+        break;
+      case 'filterItemsByMaterialProfile':
+        if (!args.materialTypes) {
+            console.error("[callApiFunction] filterItemsByMaterialProfile: Tipos de material não fornecidos.");
+            throw new Error("Tipos de material são obrigatórios para filterItemsByMaterialProfile.");
+        }
+        queryParams.append('materialTypes', args.materialTypes);
+        if (args.matchProfile) {
+          queryParams.append('matchProfile', args.matchProfile);
+        }
+        endpoint = `${RAITOCRAFT_API_BASE_URL}/items/filter-by-material-profile?${queryParams.toString()}`;
+        break;
+      case 'getMaterialUsageSummary':
+        if (args.materialName) {
+          queryParams.append('materialName', args.materialName);
+        }
+        if (args.materialTypes) {
+          queryParams.append('materialTypes', args.materialTypes);
+        }
+        endpoint = `${RAITOCRAFT_API_BASE_URL}/materials/usage-summary?${queryParams.toString()}`;
+        break;
+      case 'checkCraftingPossibilities':
+        if (!args.availableMaterials || !Array.isArray(args.availableMaterials)) {
+            console.error("[callApiFunction] checkCraftingPossibilities: Materiais disponíveis não fornecidos ou não é array.");
+            throw new Error("Materiais disponíveis são obrigatórios para checkCraftingPossibilities e devem ser um array.");
+        }
+        method = 'POST';
+        endpoint = `${RAITOCRAFT_API_BASE_URL}/crafting/check-possibilities`;
+        body = JSON.stringify({ availableMaterials: args.availableMaterials });
+        break;
+      case 'analyzeCraftingPotential':
+        method = 'POST';
+        endpoint = `${RAITOCRAFT_API_BASE_URL}/crafting/analyze-potential-crafts`;
+        body = JSON.stringify({ userMaterials: args.userMaterials || [] });
+        break;
+      case 'getPokemonDetails':
+        if (!args.pokemonName) {
+            console.error("[callApiFunction] getPokemonDetails: Nome do Pokémon não fornecido.");
+            throw new Error("Nome do Pokémon é obrigatório para getPokemonDetails.");
+        }
+        endpoint = `${POKEAPI_BASE_URL}/pokemon/${args.pokemonName.toLowerCase()}`;
+        break;
+      default:
+        console.error(`[callApiFunction] Função desconhecida: ${functionName}`);
+        return { success: false, error: `Função desconhecida: ${functionName}` };
     }
-    console.log("Conectado ao banco de dados SQLite.");
 
-    fs.readFile(path.join(__dirname, 'schema.sql'), 'utf8', (err, sql) => {
-        if (err) {
-            console.error("Erro ao ler o arquivo schema.sql:", err);
-            return;
-        }
-        db.exec(sql, (err) => {
-            if (err) {
-                console.error("Erro ao executar o schema SQL:", err.message);
-            } else {
-                console.log("Schema do banco de dados garantido.");
-            }
+    let apiData;
+    if (requiresOnlineFetch) {
+        console.log(`[callApiFunction] Chamando API: ${method} ${endpoint}`);
+        const headers = { 'Content-Type': 'application/json' };
+        const response = await fetch(endpoint, {
+          method: method,
+          headers: method === 'POST' ? headers : {},
+          body: body,
         });
-    });
-});
 
-app.use(cors());
-app.use(express.json());
-
-app.get('/api/items', (req, res) => {
-    const sqlRecipes = "SELECT id, name, quantity_produced, npc_sell_price FROM recipes ORDER BY name ASC";
-    const sqlMaterials = "SELECT recipe_id, material_name, quantity, material_type, default_npc_price FROM recipe_materials";
-
-    db.all(sqlRecipes, [], (err, recipes) => {
-        if (err) {
-            console.error("Erro na query GET /api/items (recipes):", err.message);
-            res.status(500).json({ error: 'Erro interno do servidor ao buscar itens.' });
-            return;
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error(`[callApiFunction] Erro da API externa (${response.status}) ao chamar ${endpoint} para função ${functionName}:`, errorData);
+          return { success: false, error: `Erro ao chamar API externa (${functionName} em ${endpoint}): ${response.status} - ${errorData || response.statusText}` };
         }
-
-        if (!recipes || recipes.length === 0) {
-            res.json([]);
-            return;
+        try {
+            apiData = await response.json();
+        } catch (jsonError) {
+            console.error(`[callApiFunction] Erro ao parsear JSON da API externa ${endpoint} para função ${functionName}:`, jsonError);
+            const textResponse = await response.text(); // Tenta ler como texto para log
+            console.error(`[callApiFunction] Resposta da API (texto) ${endpoint}:`, textResponse);
+            return { success: false, error: `Erro ao processar resposta da API (${functionName} em ${endpoint}): Formato JSON inválido.` };
         }
+        console.log(`[callApiFunction] Dados recebidos da API externa (${functionName} de ${endpoint}):`, apiData);
+    }
 
-        db.all(sqlMaterials, [], (err, materials) => {
-            if (err) {
-                console.error("Erro na query GET /api/items (materials):", err.message);
-                res.status(500).json({ error: 'Erro interno do servidor ao buscar materiais dos itens.' });
-                return;
-            }
-
-            const itemsWithMaterials = recipes.map(recipe => {
-                return {
-                    ...recipe,
-                    materials: materials.filter(material => material.recipe_id === recipe.id)
-                                     .map(({ recipe_id, ...rest }) => rest)
-                };
-            });
-            res.json(itemsWithMaterials);
-        });
-    });
-});
-
-app.get('/api/items/:id/recipe', (req, res) => {
-    const itemId = parseInt(req.params.id, 10);
-    if (isNaN(itemId)) { return res.status(400).json({ error: 'ID do item inválido.' }); }
-
-    const sqlRecipe = "SELECT id, name, quantity_produced, npc_sell_price FROM recipes WHERE id = ?";
-    const sqlMaterials = "SELECT material_name, quantity, material_type, default_npc_price FROM recipe_materials WHERE recipe_id = ?";
-
-    db.get(sqlRecipe, [itemId], (err, recipeRow) => {
-        if (err) {
-            console.error(`Erro na query de receita para ID ${itemId}:`, err.message);
-            return res.status(500).json({ error: 'Erro interno do servidor ao buscar receita.' });
+    if (functionName === 'getRecipeByName') {
+        if (!apiData || !Array.isArray(apiData)) {
+            console.error(`[callApiFunction] getRecipeByName: A resposta de ${RAITOCRAFT_API_BASE_URL}/items não foi um array. Valor:`, apiData);
+            return { success: false, error: `Falha ao obter a lista de itens da API (esperava um array).` };
         }
-        if (!recipeRow) { return res.status(404).json({ error: 'Item não encontrado.' }); }
-
-        db.all(sqlMaterials, [itemId], (err, materialRows) => {
-            if (err) {
-                console.error(`Erro na query de materiais para ID ${itemId}:`, err.message);
-                return res.status(500).json({ error: 'Erro interno do servidor ao buscar materiais da receita.' });
-            }
-            const fullRecipe = { ...recipeRow, materials: materialRows || [] };
-            res.json(fullRecipe);
-        });
-    });
-});
-
-app.get('/api/items/name/:name', (req, res) => {
-    const itemName = req.params.name;
-    const sql = "SELECT npc_sell_price FROM recipes WHERE name = ?";
-    db.get(sql, [itemName], (err, row) => {
-        if (err) {
-            console.error("Erro ao buscar item por nome:", err.message);
-            return res.status(500).json({ error: 'Erro ao buscar item.' });
-        }
-        if (row) {
-            return res.json({ npc_sell_price: row.npc_sell_price });
+        const itemNameLower = args.itemName.toLowerCase();
+        const foundItem = apiData.find(item => item.name.toLowerCase() === itemNameLower);
+        if (foundItem) {
+            console.log(`[callApiFunction] getRecipeByName: Item "${args.itemName}" encontrado.`, foundItem);
+            return { success: true, data: foundItem };
         } else {
-            return res.status(404).json({ message: 'Item não encontrado.' });
+            console.log(`[callApiFunction] getRecipeByName: Item "${args.itemName}" NÃO encontrado na lista.`);
+            return { success: true, data: null }; 
         }
-    });
-   });
+    }
 
-app.post('/api/items', (req, res) => {
-    const { name, quantity_produced, npc_sell_price, materials } = req.body;
+    if (functionName === 'getItemNpcSellPrice') {
+        return { success: true, data: { itemName: args.itemName, npc_sell_price: apiData.npc_sell_price } };
+    }
 
-    if (!name || !quantity_produced || !materials || !Array.isArray(materials)) { return res.status(400).json({ error: 'Dados inválidos para criar item.' }); }
-    if (materials.some(mat => !mat.material_name || !mat.quantity || !mat.material_type)) { return res.status(400).json({ error: 'Dados inválidos em um ou mais materiais.' }); }
-
-    const sqlInsertRecipe = `INSERT INTO recipes (name, quantity_produced, npc_sell_price) VALUES (?, ?, ?)`;
-    const sqlInsertMaterial = `INSERT INTO recipe_materials (recipe_id, material_name, quantity, material_type, default_npc_price) VALUES (?, ?, ?, ?, ?)`;
-
-    db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
-        let recipeId = null;
-        db.run(sqlInsertRecipe, [name, quantity_produced, npc_sell_price || 0], function(err) {
-            if (err) {
-                console.error("Erro ao inserir receita:", err.message);
-                db.run('ROLLBACK');
-                return res.status(500).json({ error: `Erro ao salvar receita: ${err.message}` });
+    if (functionName === 'listAllCraftableItems') {
+        if (!apiData || !Array.isArray(apiData)) {
+            console.error(`[callApiFunction] listAllCraftableItems: A resposta de ${RAITOCRAFT_API_BASE_URL}/items não foi um array. Valor:`, apiData);
+            return { success: false, error: `Falha ao obter a lista de itens da API (esperava um array).` };
+        }
+        const maxItems = args.maxItemsToShow || 15;
+        const itemsToReturn = apiData.slice(0, maxItems).map(item => ({
+            name: item.name,
+            quantity_produced: item.quantity_produced
+        }));
+        return {
+            success: true,
+            data: {
+                items: itemsToReturn,
+                totalItems: apiData.length,
+                showing: itemsToReturn.length
             }
-            recipeId = this.lastID;
-
-            const stmtMaterial = db.prepare(sqlInsertMaterial);
-            let materialErrorOccurred = false;
-            materials.forEach(mat => {
-                if (materialErrorOccurred) return;
-                stmtMaterial.run([recipeId, mat.material_name, mat.quantity, mat.material_type, mat.default_npc_price || 0], (runErr) => {
-                    if (runErr) { console.error("Erro ao inserir material:", runErr.message); materialErrorOccurred = true; }
-                });
-            });
-            stmtMaterial.finalize((finalizeErr) => {
-                 if (finalizeErr) { console.error("Erro ao finalizar statement de material:", finalizeErr.message); materialErrorOccurred = true; }
-                 if (materialErrorOccurred) {
-                    db.run('ROLLBACK'); return res.status(500).json({ error: 'Erro ao salvar um ou mais materiais.' });
-                 } else {
-                    db.run('COMMIT'); return res.status(201).json({ message: 'Receita criada com sucesso!', id: recipeId });
-                 }
-            });
-        });
-    });
-});
-
-app.put('/api/items/:id', (req, res) => {
-    const itemId = parseInt(req.params.id, 10);
-    const { name, quantity_produced, npc_sell_price, materials } = req.body;
-
-    if (isNaN(itemId)) { return res.status(400).json({ error: 'ID do item inválido.' }); }
-    if (!name || !quantity_produced || !materials || !Array.isArray(materials)) { return res.status(400).json({ error: 'Dados inválidos para atualizar item.' }); }
-    if (materials.some(mat => !mat.material_name || !mat.quantity || !mat.material_type)) { return res.status(400).json({ error: 'Dados inválidos em um ou mais materiais.' }); }
-
-    const sqlUpdateRecipe = `UPDATE recipes SET name = ?, quantity_produced = ?, npc_sell_price = ? WHERE id = ?`;
-    const sqlDeleteMaterials = `DELETE FROM recipe_materials WHERE recipe_id = ?`;
-    const sqlInsertMaterial = `INSERT INTO recipe_materials (recipe_id, material_name, quantity, material_type, default_npc_price) VALUES (?, ?, ?, ?, ?)`;
-
-    db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
-        let errorOccurred = false;
-        db.run(sqlUpdateRecipe, [name, quantity_produced, npc_sell_price || 0, itemId], function(err) {
-            if (err) { errorOccurred = true; console.error("Erro ao atualizar receita:", err.message); db.run('ROLLBACK'); return res.status(500).json({ error: `Erro ao atualizar receita: ${err.message}` }); }
-            if (this.changes === 0 && !errorOccurred) { errorOccurred = true; db.run('ROLLBACK'); return res.status(404).json({ error: 'Item não encontrado para atualização.' }); }
-
-            if(!errorOccurred) {
-                db.run(sqlDeleteMaterials, [itemId], (deleteErr) => {
-                    if (deleteErr) { errorOccurred = true; console.error("Erro ao deletar materiais antigos:", deleteErr.message); db.run('ROLLBACK'); return res.status(500).json({ error: 'Erro ao limpar materiais antigos.' }); }
-
-                    if (!errorOccurred) {
-                        const stmtMaterial = db.prepare(sqlInsertMaterial);
-                        let materialInsertError = false;
-                        materials.forEach(mat => {
-                            if (materialInsertError) return;
-                            stmtMaterial.run([itemId, mat.material_name, mat.quantity, mat.material_type, mat.default_npc_price || 0], (runErr) => { if (runErr) { console.error("Erro ao inserir novo material:", runErr.message); materialInsertError = true; } });
-                        });
-                        stmtMaterial.finalize((finalizeErr) => {
-                            if (finalizeErr) { console.error("Erro ao finalizar statement de material (update):", finalizeErr.message); materialInsertError = true; }
-                            if (materialInsertError) { errorOccurred = true; db.run('ROLLBACK'); return res.status(500).json({ error: 'Erro ao salvar um ou mais materiais atualizados.' }); }
-                            else if (!errorOccurred) { db.run('COMMIT'); return res.json({ message: 'Receita atualizada com sucesso!', id: itemId }); }
-                        });
-                    }
-                });
-            }
-        });
-    });
-});
-
-app.delete('/api/items/:id', (req, res) => {
-    const itemId = parseInt(req.params.id, 10);
-    if (isNaN(itemId)) { return res.status(400).json({ error: 'ID do item inválido.' }); }
-    const sql = `DELETE FROM recipes WHERE id = ?`;
-    db.run(sql, [itemId], function(err) {
-        if (err) { console.error("Erro ao deletar receita:", err.message); return res.status(500).json({ error: `Erro ao deletar receita: ${err.message}` }); }
-        if (this.changes === 0) { return res.status(404).json({ error: 'Item não encontrado para deletar.' }); }
-        res.status(200).json({ message: 'Receita deletada com sucesso!' });
-    });
-});
-
-app.get('/api/items/by-material', (req, res) => {
-    const materialName = req.query.materialName;
-    if (!materialName) {
-        return res.status(400).json({ error: 'Nome do material é obrigatório na query string (materialName).' });
+        };
     }
-    const sqlRecipes = "SELECT id, name, quantity_produced, npc_sell_price FROM recipes ORDER BY name ASC";
-    const sqlMaterials = "SELECT recipe_id, material_name, quantity, material_type, default_npc_price FROM recipe_materials";
+    
+    return { success: true, data: apiData };
 
-    db.all(sqlRecipes, [], (err, recipes) => {
-        if (err) {
-            console.error("Erro na query GET /api/items/by-material (recipes):", err.message);
-            return res.status(500).json({ error: 'Erro interno do servidor ao buscar itens.' });
-        }
-        if (!recipes || recipes.length === 0) { return res.json([]); }
-        db.all(sqlMaterials, [], (err, materials) => {
-            if (err) {
-                console.error("Erro na query GET /api/items/by-material (materials):", err.message);
-                return res.status(500).json({ error: 'Erro interno do servidor ao buscar materiais.' });
-            }
-            const recipesUsingMaterial = recipes.filter(recipe => {
-                const recipeMaterials = materials.filter(m => m.recipe_id === recipe.id);
-                return recipeMaterials.some(m => m.material_name.toLowerCase() === materialName.toLowerCase());
-            }).map(recipe => {
-                return {
-                    ...recipe,
-                    materials: materials.filter(material => material.recipe_id === recipe.id)
-                                     .map(({ recipe_id, ...rest }) => rest)
-                };
-            });
-            res.json(recipesUsingMaterial);
-        });
-    });
-});
+  } catch (error) {
+    console.error(`[callApiFunction] Erro geral ao executar a função ${functionName} ou chamar a API:`, error);
+    return { success: false, error: `Erro interno ao processar ${functionName}: ${error.message}` };
+  }
+}
 
-app.get('/api/items/most-profitable-npc', (req, res) => {
-    const sqlRecipes = "SELECT id, name, quantity_produced, npc_sell_price FROM recipes";
-    const sqlMaterials = "SELECT recipe_id, material_name, quantity, material_type, default_npc_price FROM recipe_materials";
+export async function sendMessageToGemini(message) {
+  if (!chat) {
+    console.error("Chatbot não inicializado. Chame initChatbot() primeiro.");
+    return { error: "Chatbot não está pronto." };
+  }
 
-    db.all(sqlRecipes, [], (err, recipes) => {
-        if (err) {
-            console.error("Erro na query GET /api/items/most-profitable-npc (recipes):", err.message);
-            return res.status(500).json({ error: 'Erro interno do servidor ao buscar itens para cálculo de lucro.' });
-        }
-        if (!recipes || recipes.length === 0) { return res.json([]); }
-        db.all(sqlMaterials, [], (err, materials) => {
-            if (err) {
-                console.error("Erro na query GET /api/items/most-profitable-npc (materials):", err.message);
-                return res.status(500).json({ error: 'Erro interno do servidor ao buscar materiais para cálculo de lucro.' });
-            }
-            const profitableItems = recipes.map(recipe => {
-                const recipeMaterials = materials.filter(m => m.recipe_id === recipe.id);
-                let totalMaterialCostNpc = 0;
-                for (const mat of recipeMaterials) {
-                    if (mat.material_type === 'profession') { continue; }
-                    totalMaterialCostNpc += (mat.quantity * (mat.default_npc_price || 0));
-                }
-                const totalRevenueNpc = (recipe.npc_sell_price || 0) * (recipe.quantity_produced || 1);
-                const profitNpc = totalRevenueNpc - totalMaterialCostNpc;
-                return {
-                    id: recipe.id,
-                    name: recipe.name,
-                    quantity_produced: recipe.quantity_produced,
-                    npc_sell_price_per_unit: recipe.npc_sell_price,
-                    total_revenue_npc: totalRevenueNpc,
-                    total_material_cost_npc: totalMaterialCostNpc,
-                    profit_npc: profitNpc,
-                };
-            }).sort((a, b) => b.profit_npc - a.profit_npc);
-            res.json(profitableItems);
-        });
-    });
-});
+  try {
+    console.log("Enviando para Gemini:", message);
+    const result = await chat.sendMessage(message);
+    let response = result.response;
+    console.log("Resposta inicial do Gemini:", JSON.stringify(response, null, 2));
 
-app.get('/api/items/filter-by-material-profile', (req, res) => {
-    const { materialTypes: materialTypesQuery, matchProfile = 'exclusive' } = req.query;
+    let functionCall = response.candidates?.[0]?.content?.parts?.[0]?.functionCall;
+    
+    while (functionCall) {
+      console.log("Gemini solicitou chamada de função:", functionCall.name, "com args:", functionCall.args);
+      const apiResponse = await callApiFunction(functionCall.name, functionCall.args);
 
-    if (!materialTypesQuery) {
-        return res.status(400).json({ error: 'O parâmetro "materialTypes" é obrigatório (ex: "profession" ou "drop,buy").' });
-    }
-    const validProfiles = ['exclusive', 'contains_any', 'contains_all', 'not_contains_any'];
-    if (!validProfiles.includes(matchProfile)) {
-        return res.status(400).json({ error: `Valor inválido para "matchProfile". Válidos: ${validProfiles.join(', ')}.` });
-    }
-    const typesArray = materialTypesQuery.toLowerCase().split(',').map(t => t.trim()).filter(t => t);
-    if (typesArray.length === 0) {
-         return res.status(400).json({ error: 'Nenhum tipo de material válido fornecido em "materialTypes".' });
+      console.log("Enviando FunctionResponse para Gemini:", JSON.stringify({ name: functionCall.name, response: apiResponse }, null, 2));
+
+      const functionCallResult = await chat.sendMessage([
+        {
+          functionResponse: {
+            name: functionCall.name,
+            response: apiResponse, 
+          },
+        },
+      ]);
+      response = functionCallResult.response;
+      console.log("Resposta do Gemini após Function Call:", JSON.stringify(response, null, 2));
+      functionCall = response.candidates?.[0]?.content?.parts?.[0]?.functionCall;
     }
 
-    const sqlRecipes = "SELECT id, name, quantity_produced, npc_sell_price FROM recipes ORDER BY name ASC";
-    const sqlMaterials = "SELECT recipe_id, material_name, quantity, material_type, default_npc_price FROM recipe_materials";
+    const textResponse = response.candidates?.[0]?.content?.parts
+      ?.filter(part => part.text)
+      ?.map(part => part.text)
+      ?.join('');
+      
+    console.log("Resposta final de texto do Gemini:", textResponse);
+    return { text: textResponse || "Não consegui processar sua solicitação no momento." };
 
-    db.all(sqlRecipes, [], (err, recipes) => {
-        if (err) { return res.status(500).json({ error: 'Erro ao buscar receitas.' }); }
-        if (!recipes || recipes.length === 0) { return res.json([]); }
-
-        db.all(sqlMaterials, [], (err, materials) => {
-            if (err) { return res.status(500).json({ error: 'Erro ao buscar materiais.' }); }
-
-            const filteredRecipes = recipes.filter(recipe => {
-                const recipeMats = materials.filter(m => m.recipe_id === recipe.id);
-                if (recipeMats.length === 0 && (matchProfile === 'exclusive' || matchProfile === 'not_contains_any')) {
-                    return matchProfile === 'not_contains_any';
-                }
-                 if (recipeMats.length === 0) return false;
-
-                switch (matchProfile) {
-                    case 'exclusive':
-                        return recipeMats.every(m => typesArray.includes(m.material_type.toLowerCase()));
-                    case 'contains_any':
-                        return recipeMats.some(m => typesArray.includes(m.material_type.toLowerCase()));
-                    case 'contains_all':
-                        return typesArray.every(type => recipeMats.some(m => m.material_type.toLowerCase() === type));
-                    case 'not_contains_any':
-                        return !recipeMats.some(m => typesArray.includes(m.material_type.toLowerCase()));
-                    default:
-                        return false;
-                }
-            }).map(recipe => ({
-                ...recipe,
-                materials: materials.filter(material => material.recipe_id === recipe.id)
-                                 .map(({ recipe_id, ...rest }) => rest)
-            }));
-            res.json(filteredRecipes);
-        });
-    });
-});
-
-app.get('/api/materials/usage-summary', (req, res) => {
-    const { materialName: materialNameQuery, materialTypes: materialTypesQuery } = req.query;
-
-    let baseSql = "SELECT material_name, material_type, SUM(quantity) as total_quantity_needed, COUNT(DISTINCT recipe_id) as used_in_recipes_count FROM recipe_materials";
-    const conditions = [];
-    const params = [];
-
-    if (materialNameQuery) {
-        conditions.push("material_name LIKE ?");
-        params.push(`%${materialNameQuery}%`);
-    }
-    if (materialTypesQuery) {
-        const typesArray = materialTypesQuery.toLowerCase().split(',').map(t => t.trim()).filter(t => t);
-        if (typesArray.length > 0) {
-            conditions.push(`material_type IN (${typesArray.map(() => '?').join(',')})`);
-            params.push(...typesArray);
-        }
-    }
-
-    if (conditions.length > 0) {
-        baseSql += " WHERE " + conditions.join(" AND ");
-    }
-    baseSql += " GROUP BY material_name, material_type ORDER BY used_in_recipes_count DESC, total_quantity_needed DESC, material_name ASC";
-
-    db.all(baseSql, params, (err, rows) => {
-        if (err) {
-            console.error("Erro na query GET /api/materials/usage-summary:", err.message);
-            return res.status(500).json({ error: 'Erro interno do servidor ao buscar sumário de materiais.' });
-        }
-        res.json(rows);
-    });
-});
-
-app.post('/api/crafting/check-possibilities', (req, res) => {
-    const { availableMaterials } = req.body;
-
-    if (!availableMaterials || !Array.isArray(availableMaterials)) {
-        return res.status(400).json({ error: 'O corpo da requisição deve conter um array "availableMaterials".' });
-    }
-
-    const userInventory = availableMaterials.reduce((acc, mat) => {
-        if (mat.material_name && typeof mat.quantity === 'number' && mat.quantity >= 0) {
-            acc[mat.material_name.toLowerCase()] = (acc[mat.material_name.toLowerCase()] || 0) + mat.quantity;
-        }
-        return acc;
-    }, {});
-
-    if (Object.keys(userInventory).length === 0) {
-        return res.status(400).json({ error: 'Nenhum material válido fornecido em "availableMaterials". Cada material deve ter "material_name" e "quantity".' });
-    }
-
-    const sqlRecipes = "SELECT id, name, quantity_produced, npc_sell_price FROM recipes";
-    const sqlAllRecipeMaterials = "SELECT recipe_id, material_name, quantity FROM recipe_materials";
-
-    db.all(sqlRecipes, [], (err, recipes) => {
-        if (err) { return res.status(500).json({ error: 'Erro ao buscar receitas para verificar possibilidades.' }); }
-        if (!recipes || recipes.length === 0) { return res.json([]); }
-
-        db.all(sqlAllRecipeMaterials, [], (err, allMaterials) => {
-            if (err) { return res.status(500).json({ error: 'Erro ao buscar materiais de receita para verificar possibilidades.' }); }
-
-            const craftableItems = [];
-
-            recipes.forEach(recipe => {
-                const materialsNeededForRecipe = allMaterials.filter(m => m.recipe_id === recipe.id);
-
-                if (materialsNeededForRecipe.length === 0) {
-                    craftableItems.push({
-                        recipe_id: recipe.id,
-                        recipe_name: recipe.name,
-                        quantity_produced_per_craft: recipe.quantity_produced,
-                        max_crafts_possible: Infinity, 
-                        materials_needed: []
-                    });
-                    return; 
-                }
-
-                let canCraftRecipe = true;
-                let maxCraftsForThisRecipe = Infinity;
-
-                for (const neededMat of materialsNeededForRecipe) {
-                    const userHasQty = userInventory[neededMat.material_name.toLowerCase()] || 0;
-                    const neededQtyPerCraft = neededMat.quantity;
-
-                    if (userHasQty < neededQtyPerCraft) {
-                        canCraftRecipe = false;
-                        break; 
-                    }
-                    const possibleCraftsWithThisMaterial = Math.floor(userHasQty / neededQtyPerCraft);
-                    if (possibleCraftsWithThisMaterial < maxCraftsForThisRecipe) {
-                        maxCraftsForThisRecipe = possibleCraftsWithThisMaterial;
-                    }
-                }
-
-                if (canCraftRecipe && maxCraftsForThisRecipe > 0) {
-                    craftableItems.push({
-                        recipe_id: recipe.id,
-                        recipe_name: recipe.name,
-                        quantity_produced_per_craft: recipe.quantity_produced,
-                        max_crafts_possible: maxCraftsForThisRecipe,
-                        total_items_producible: maxCraftsForThisRecipe * recipe.quantity_produced,
-                        materials_needed: materialsNeededForRecipe.map(m => ({
-                            material_name: m.material_name,
-                            quantity_per_craft: m.quantity,
-                            total_quantity_needed_for_max_crafts: m.quantity * maxCraftsForThisRecipe,
-                            user_has_quantity: userInventory[m.material_name.toLowerCase()] || 0
-                        }))
-                    });
-                }
-            });
-
-            res.json(craftableItems.sort((a,b) => b.max_crafts_possible - a.max_crafts_possible));
-        });
-    });
-});
-// Função adicionada
-app.post('/api/crafting/analyze-potential-crafts', (req, res) => {
-    const { userMaterials } = req.body;
-
-    if (!userMaterials || !Array.isArray(userMaterials)) {
-        return res.status(400).json({ error: 'O corpo da requisição deve conter um array "userMaterials".' });
-    }
-
-    const userInventory = userMaterials.reduce((acc, mat) => {
-        if (mat.material_name && typeof mat.quantity === 'number' && mat.quantity >= 0) {
-            acc[mat.material_name.toLowerCase()] = (acc[mat.material_name.toLowerCase()] || 0) + mat.quantity;
-        }
-        return acc;
-    }, {});
-
-    if (Object.keys(userInventory).length === 0 && userMaterials.length > 0) {
-         return res.status(400).json({ error: 'Nenhum material válido fornecido em "userMaterials". Cada material deve ter "material_name" e "quantity".' });
-    }
-
-
-    const sqlRecipes = "SELECT id, name, quantity_produced FROM recipes";
-    const sqlAllRecipeMaterials = "SELECT recipe_id, material_name, quantity, material_type FROM recipe_materials";
-
-    db.all(sqlRecipes, [], (err, recipes) => {
-        if (err) { return res.status(500).json({ error: 'Erro ao buscar receitas para análise.' }); }
-        if (!recipes || recipes.length === 0) { return res.json([]); }
-
-        db.all(sqlAllRecipeMaterials, [], (err, allMaterials) => {
-            if (err) { return res.status(500).json({ error: 'Erro ao buscar materiais de receita para análise.' }); }
-
-            const analysisResults = [];
-
-            recipes.forEach(recipe => {
-                const materialsNeededForThisRecipe = allMaterials.filter(m => m.recipe_id === recipe.id);
-
-                if (materialsNeededForThisRecipe.length === 0) return; 
-
-                let usesAtLeastOneUserMaterial = false;
-                if (Object.keys(userInventory).length > 0) { // Só checar se o usuário de fato passou algum material
-                    usesAtLeastOneUserMaterial = materialsNeededForThisRecipe.some(neededMat => 
-                        userInventory.hasOwnProperty(neededMat.material_name.toLowerCase())
-                    );
-                } else { // Se o usuário não passou materiais, consideramos todas as receitas
-                    usesAtLeastOneUserMaterial = true;
-                }
-
-
-                if (!usesAtLeastOneUserMaterial && Object.keys(userInventory).length > 0) {
-                    return; 
-                }
-                
-                let craftableNowCount = Infinity;
-                let canCraftAtAll = true;
-
-                const materialsAnalysis = materialsNeededForThisRecipe.map(neededMat => {
-                    const userHasQty = userInventory[neededMat.material_name.toLowerCase()] || 0;
-                    const quantityMissingForOneCraft = Math.max(0, neededMat.quantity - userHasQty);
-                    
-                    if (userHasQty < neededMat.quantity) {
-                        canCraftAtAll = false;
-                    }
-                    if (neededMat.quantity > 0) { // Evitar divisão por zero se quantidade na receita for 0
-                         const possibleCraftsWithThisMaterial = Math.floor(userHasQty / neededMat.quantity);
-                         if (possibleCraftsWithThisMaterial < craftableNowCount) {
-                             craftableNowCount = possibleCraftsWithThisMaterial;
-                         }
-                    }
-
-
-                    return {
-                        material_name: neededMat.material_name,
-                        material_type: neededMat.material_type,
-                        quantity_needed_per_craft: neededMat.quantity,
-                        user_has_quantity: userHasQty,
-                        quantity_missing_for_one_craft: quantityMissingForOneCraft,
-                    };
-                });
-                
-                if (!canCraftAtAll) {
-                    craftableNowCount = 0;
-                }
-                if (craftableNowCount === Infinity && materialsNeededForThisRecipe.length > 0) { // Se não houve material limitante e há materiais, mas nenhum foi suficiente
-                    craftableNowCount = 0; 
-                } else if (craftableNowCount === Infinity && materialsNeededForThisRecipe.length === 0) { // Receita sem materiais
-                    craftableNowCount = Infinity;
-                }
-
-
-                analysisResults.push({
-                    recipe_id: recipe.id,
-                    recipe_name: recipe.name,
-                    quantity_produced_per_craft: recipe.quantity_produced,
-                    materials_analysis: materialsAnalysis,
-                    craftable_now_count: craftableNowCount
-                });
-            });
-            
-            const relevantResults = analysisResults.filter(r => {
-                if (Object.keys(userInventory).length === 0) return true; // Mostrar tudo se nenhum material foi fornecido
-                // Mostrar se o usuário tem pelo menos um material da receita ou se pode craftar agora
-                return r.craftable_now_count > 0 || r.materials_analysis.some(m => m.user_has_quantity > 0 && materialsNeededForThisRecipe.find(rm => rm.material_name === m.material_name));
-            });
-
-
-            res.json(relevantResults);
-        });
-    });
-});
-
-
-app.use((err, req, res, next) => {
-    console.error("Erro não tratado:", err.stack);
-    res.status(500).json({ error: 'Algo deu muito errado no servidor!' });
-});
-
-app.get('/health', (req, res) => {
-    console.log("[GET /health] Ping received.");
-    res.status(200).send('OK');
-});
-
-app.listen(PORT, () => {
-    console.log(`Servidor backend rodando na porta ${PORT}`);
-    console.log(`API disponível em http://localhost:${PORT}/api`);
-});
+  } catch (error) {
+    console.error("Erro ao enviar mensagem ou processar resposta do Gemini:", error);
+    const geminiError = error.response?.candidates?.[0]?.finishReason
+      ? `O modelo terminou devido a: ${error.response.candidates[0].finishReason}. Detalhes: ${JSON.stringify(error.response.candidates[0].safetyRatings)}`
+      : error.message;
+    return { error: `Erro na comunicação com a IA: ${geminiError}` };
+  }
+}
