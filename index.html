@@ -173,6 +173,28 @@
     <button id="dark-mode-toggle" title="Alternar tema claro/escuro">
         🌙 </button>
 
+    <button id="chatbot-toggle-button" class="chatbot-fab" title="Abrir Chat de Ajuda" aria-label="Abrir Chat de Ajuda">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12zM7 9h10v2H7zm0 3h7v2H7z"/></svg>
+    </button>
+
+    <div id="chatbot-window" class="chatbot-window" style="display: none;">
+        <div class="chatbot-header">
+            Assistente Raitocraft
+            <button id="chatbot-close-button" class="chatbot-close" aria-label="Fechar Chat">&times;</button>
+        </div>
+        <div id="chatbot-messages" class="chatbot-messages-area">
+            <div class="chatbot-message bot">
+                Olá! Posso te ajudar com seus cálculos de craft ou dúvidas sobre o universo de Pokémon?
+            </div>
+        </div>
+        <div class="chatbot-input-area">
+            <input type="text" id="chatbot-input" placeholder="Digite sua pergunta...">
+            <button id="chatbot-send-button" class="chatbot-send" aria-label="Enviar mensagem">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20px" height="20px"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2 .01 7z"/></svg>
+            </button>
+        </div>
+    </div>
+
     <div id="item-preview-modal" class="item-preview-modal" style="display: none;">
     </div>
 

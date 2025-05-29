@@ -130,13 +130,7 @@ html[data-theme="dark"] {
     --background-alt-color: #252525;
 }
 
-.container {
-    max-width: 960px;
-    margin: 20px auto;
-    padding: 0 20px;
-    position: relative;
-    overflow-x: hidden;
-}
+
 
 .page-view {
     background-color: var(--card-bg-color);
@@ -892,4 +886,228 @@ html[data-theme="dark"] .input-warning {
     #calculation-modal .modal-confirm-btn {
         width: calc(100% - 5px);
     }
+}
+
+/* ESTILOS PARA O CHATBOT */
+.chatbot-fab {
+    position: fixed;
+    bottom: 20px;
+    right: 20px; /* Ajustado para não sobrepor o botão de dark mode */
+    background-color: var(--primary-color);
+    color: var(--button-primary-text);
+    border: none;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em; /* Aumentado para melhor visibilidade do ícone */
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 1010; /* Acima do dark-mode-toggle */
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.chatbot-fab:hover {
+    background-color: color-mix(in srgb, var(--primary-color) 85%, black);
+    transform: scale(1.05);
+}
+
+.chatbot-fab svg {
+    width: 28px; /* Ajustado para o novo tamanho do botão */
+    height: 28px;
+}
+
+
+#dark-mode-toggle {
+    position: fixed;
+    bottom: 85px; /* Movido para cima para dar espaço ao FAB do chat */
+    right: 20px;
+    background-color: var(--card-bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+
+.chatbot-window {
+    position: fixed;
+    bottom: 90px; /* Para não sobrepor o FAB */
+    right: 20px;
+    width: 350px;
+    max-width: calc(100vw - 40px);
+    height: 70vh;
+    max-height: 500px;
+    background-color: var(--card-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    z-index: 1005; /* Abaixo do FAB, mas acima do conteúdo normal */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: opacity 0.3s, transform 0.3s;
+    transform: translateY(10px);
+    opacity: 0;
+}
+
+.chatbot-window.active {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.chatbot-header {
+    background-color: var(--primary-color);
+    color: var(--button-primary-text);
+    padding: 10px 15px;
+    font-weight: 500;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.chatbot-close {
+    background: none;
+    border: none;
+    color: var(--button-primary-text);
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 5px;
+    line-height: 1;
+}
+.chatbot-close:hover {
+    opacity: 0.8;
+}
+
+.chatbot-messages-area {
+    flex-grow: 1;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chatbot-message {
+    padding: 8px 12px;
+    border-radius: 15px;
+    max-width: 80%;
+    word-wrap: break-word;
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+.chatbot-message.user {
+    background-color: var(--primary-color);
+    color: var(--button-primary-text);
+    border-bottom-right-radius: 3px;
+    align-self: flex-end;
+    margin-left: auto;
+}
+
+.chatbot-message.bot {
+    background-color: var(--highlight-bg-color);
+    color: var(--text-color);
+    border-bottom-left-radius: 3px;
+    align-self: flex-start;
+    margin-right: auto;
+}
+
+.chatbot-input-area {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+    background-color: var(--background-alt-color);
+}
+
+#chatbot-input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid var(--input-border-color);
+    border-radius: 20px;
+    margin-right: 10px;
+    font-size: 0.95em;
+    background-color: var(--input-bg-color);
+    color: var(--text-color);
+}
+#chatbot-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.chatbot-send {
+    background-color: var(--primary-color);
+    color: var(--button-primary-text);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.chatbot-send:hover {
+    background-color: color-mix(in srgb, var(--primary-color) 85%, black);
+}
+.chatbot-send svg {
+    fill: var(--button-primary-text);
+}
+
+
+/* Ajustes para responsividade do chatbot */
+@media (max-width: 768px) {
+    .chatbot-fab {
+        width: 50px;
+        height: 50px;
+        bottom: 15px;
+        right: 15px;
+    }
+    .chatbot-fab svg {
+        width: 24px;
+        height: 24px;
+    }
+    #dark-mode-toggle {
+        bottom: 75px; /* Ajustar se necessário */
+        right: 15px;
+    }
+
+    .chatbot-window {
+        width: calc(100vw - 30px);
+        max-width: none;
+        height: 65vh;
+        max-height: none;
+        bottom: 15px;
+        right: 15px;
+        left: 15px;
+        transform: translateY(100%); /* Animar de baixo para cima */
+        opacity: 1; /* Começar visível para animação */
+    }
+    .chatbot-window.active {
+        transform: translateY(0);
+    }
+}
+
+
+/* Utilitários já existentes, podem ser relevantes para o chat */
+.container {
+    max-width: 960px;
+    margin: 20px auto;
+    padding: 0 20px;
+    position: relative;
+    overflow-x: hidden; /* Pode ser útil para evitar scroll com o chat */
 }
