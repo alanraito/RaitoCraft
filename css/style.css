@@ -2,7 +2,7 @@
   Arquivo: style.css
   Descrição: Este arquivo contém todas as regras de estilo CSS para a aplicação Calculadora de Craft Pokexgames.
   Ele define a aparência visual de todos os elementos da interface, incluindo layout, cores, fontes,
-  responsividade, temas (claro/escuro) e estilos para componentes interativos como o chatbot.
+  responsividade, temas (claro/escuro) e estilos para componentes interativos como o chatbot e suas sugestões.
   Principais Seções:
   - Reset Básico e Configurações Globais: Normaliza estilos e define padrões para o corpo da página.
   - Variáveis de Cor e Tema: Define paletas de cores para os temas claro e escuro, facilitando a customização e manutenção.
@@ -21,7 +21,7 @@
   - Validação de Inputs de Lote: Estilos visuais para indicar inputs válidos, inválidos ou com aviso.
   - Footer: Estilização do rodapé da página.
   - Botão Dark Mode Toggle: Aparência do botão para alternar entre temas.
-  - Estilos do Chatbot: Aparência do FAB, janela do chat, mensagens e input.
+  - Estilos do Chatbot: Aparência do FAB, janela do chat, mensagens, input e área de sugestões.
   - Responsividade: Media queries para ajustar o layout e a aparência em dispositivos móveis.
 */
 
@@ -941,7 +941,7 @@ html[data-theme="dark"] .input-warning {
     content: '...';
     display: inline-block;
     animation: typing-ellipsis 1.2s infinite steps(3, end);
-    width: 1.2em; /* Ajuste a largura conforme necessário */
+    width: 1.2em;
     text-align: left;
     vertical-align: bottom;
 }
@@ -952,13 +952,52 @@ html[data-theme="dark"] .input-warning {
     66% { content: '...'; }
 }
 
-
-.chatbot-input-area {
+.chatbot-input-area-container {
     display: flex;
-    padding: 10px;
+    flex-direction: column;
     border-top: 1px solid var(--border-color);
-    flex-shrink: 0;
     background-color: var(--background-alt-color);
+    padding: 8px;
+}
+
+.chatbot-suggestions-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+    max-height: 70px; /* 2 linhas de sugestões aprox. */
+    overflow-y: auto;
+}
+
+.suggestion-button {
+    background-color: var(--highlight-bg-color);
+    color: var(--text-color-emphasis);
+    border: 1px solid var(--border-color-soft);
+    padding: 4px 8px;
+    font-size: 0.85em;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.suggestion-button:hover {
+    background-color: var(--primary-color);
+    color: var(--button-primary-text);
+    border-color: var(--primary-color);
+}
+
+html[data-theme="dark"] .suggestion-button {
+    background-color: var(--input-bg-color);
+    border-color: var(--input-border-color);
+}
+html[data-theme="dark"] .suggestion-button:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+
+.chatbot-input-row {
+    display: flex;
 }
 
 #chatbot-input {
@@ -1103,6 +1142,9 @@ html[data-theme="dark"] .input-warning {
     }
     .chatbot-window.active {
         transform: translateY(0);
+    }
+    .chatbot-suggestions-area {
+        max-height: 50px; /* Ajuste para mobile se necessário */
     }
 }
 

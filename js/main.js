@@ -5,15 +5,19 @@
   o controle do tema (claro/escuro) e a interatividade do menu de navegação (incluindo o menu hambúrguer
   para dispositivos móveis). Também implementa a funcionalidade de swipe para navegação em telas sensíveis ao toque,
   o comportamento de ocultar/mostrar o header ao rolar a página, e a interface/lógica do chatbot,
-  incluindo feedback visual durante o processamento de mensagens.
+  incluindo feedback visual durante o processamento de mensagens e sugestões dinâmicas de perguntas.
   Principais Funções:
-  - initializeApp: Ponto de entrada que configura os listeners de eventos globais, carrega a view inicial e inicializa o chatbot.
+  - initializeApp: Ponto de entrada que configura os listeners de eventos globais, carrega a view inicial,
+                   inicializa o chatbot e busca dados para sugestões.
   - navigateTo: Controla a transição animada entre as diferentes views (Inserir, Calcular, Editar).
   - applyTheme, toggleTheme, loadInitialTheme: Gerenciam a aplicação do tema claro/escuro.
   - handleScroll: Oculta/mostra o header ao rolar a página.
   - handleTouchStart, handleTouchEnd, handleSwipeGesture: Implementam navegação por swipe.
   - toggleMobileMenu: Controla o menu de navegação mobile.
-  - initializeChatbotUI: Configura listeners para a UI do chat e interações com o chatbotService.
+  - initializeChatbotUI: Configura listeners para a UI do chat, interações com o chatbotService e inicializa sugestões.
+  - fetchNamesForSuggestions: Busca nomes de itens e materiais da API para popular as sugestões.
+  - updateChatbotSuggestions: Filtra e exibe sugestões de perguntas com base no input do usuário.
+  - handleSuggestionClick: Preenche o input do chat e envia a mensagem ao clicar numa sugestão.
   - toggleChatbotWindow: Alterna a visibilidade da janela do chatbot.
   - displayChatMessage: Adiciona uma mensagem (usuário ou bot) na área de mensagens do chat.
   - handleSendMessage: Pega a mensagem do usuário, envia para o chatbotService e exibe as respostas,
@@ -22,6 +26,7 @@
   - initInsertView, initCalculateView, initEditView: Funções de inicialização para cada view específica.
   - ui (de ui.js): Funções utilitárias para a UI.
   - chatbotService (de services/chatbotService.js): Lógica de comunicação com o Gemini.
+  - api (de apiService.js): Para buscar dados da API RaitoCraft.
   Constantes Globais:
   - Elementos DOM para páginas, navegação, header, container e chatbot.
 */
@@ -30,6 +35,7 @@ import { initCalculateView } from './views/calculateView.js';
 import { initEditView } from './views/editView.js';
 import * as ui from './ui.js';
 import * as chatbotService from './services/chatbotService.js';
+import * as api from './apiService.js';
 
 const pages = {
     'page-insert': document.getElementById('page-insert'),
@@ -52,6 +58,7 @@ const chatbotCloseButton = document.getElementById('chatbot-close-button');
 const chatbotMessagesArea = document.getElementById('chatbot-messages');
 const chatbotInput = document.getElementById('chatbot-input');
 const chatbotSendButton = document.getElementById('chatbot-send-button');
+const chatbotSuggestionsArea = document.getElementById('chatbot-suggestions-area');
 
 let currentView = null;
 let currentPageId = null;
@@ -67,6 +74,10 @@ let touchStartY = 0;
 let touchEndX = 0;
 let touchEndY = 0;
 const swipeThreshold = 50;
+
+let allItemNames = new Set();
+let allMaterialNames = new Set();
+let debounceTimer;
 
 function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
@@ -153,11 +164,89 @@ function displayChatMessage(message, type = 'bot', id = null) {
     chatbotMessagesArea.scrollTop = chatbotMessagesArea.scrollHeight;
 }
 
+async function fetchNamesForSuggestions() {
+    try {
+        const items = await api.fetchItems();
+        allItemNames.clear();
+        allMaterialNames.clear();
+        items.forEach(item => {
+            allItemNames.add(item.name);
+            if (item.materials) {
+                item.materials.forEach(material => {
+                    allMaterialNames.add(material.material_name);
+                });
+            }
+        });
+        console.log("Nomes para sugestões carregados:", allItemNames, allMaterialNames);
+    } catch (error) {
+        console.error("Erro ao buscar nomes para sugestões:", error);
+    }
+}
+
+function updateChatbotSuggestions(inputText) {
+    if (!chatbotSuggestionsArea) return;
+    chatbotSuggestionsArea.innerHTML = '';
+    const query = inputText.toLowerCase().trim();
+
+    if (query.length < 2) { // Não mostrar sugestões para texto muito curto
+        return;
+    }
+
+    const suggestions = [];
+    const maxSuggestions = 3;
+
+    allItemNames.forEach(name => {
+        if (name.toLowerCase().includes(query) && suggestions.length < maxSuggestions) {
+            suggestions.push({ text: `Quais os materiais para ${name}?`, type: 'item', name });
+        }
+        if (name.toLowerCase().includes(query) && suggestions.length < maxSuggestions) {
+            suggestions.push({ text: `Qual o preço NPC de ${name}?`, type: 'item', name });
+        }
+    });
+
+    allMaterialNames.forEach(name => {
+        if (name.toLowerCase().includes(query) && suggestions.length < maxSuggestions) {
+            // Evitar duplicar se um nome de material também for um nome de item e já tiver gerado perguntas similares
+            if (!allItemNames.has(name) || !suggestions.some(s => s.name === name && s.type === 'item')) {
+                 suggestions.push({ text: `O que posso fazer com ${name}?`, type: 'material', name });
+            }
+        }
+    });
+    
+    const uniqueSuggestions = suggestions.filter((suggestion, index, self) => 
+        index === self.findIndex((s) => (
+            s.text === suggestion.text
+        ))
+    ).slice(0, maxSuggestions);
+
+
+    uniqueSuggestions.forEach(suggestion => {
+        const button = document.createElement('button');
+        button.classList.add('suggestion-button');
+        button.textContent = suggestion.text;
+        button.addEventListener('click', () => handleSuggestionClick(suggestion.text));
+        chatbotSuggestionsArea.appendChild(button);
+    });
+}
+
+function handleSuggestionClick(questionText) {
+    if (chatbotInput) {
+        chatbotInput.value = questionText;
+    }
+    if (chatbotSuggestionsArea) {
+        chatbotSuggestionsArea.innerHTML = ''; // Limpa sugestões
+    }
+    handleSendMessage(); // Envia a mensagem
+    chatbotInput.focus();
+}
+
+
 async function handleSendMessage() {
     if (!chatbotInput || !chatbotSendButton || isChatbotProcessing) return;
     const messageText = chatbotInput.value.trim();
     if (!messageText) return;
 
+    if (chatbotSuggestionsArea) chatbotSuggestionsArea.innerHTML = ''; // Limpa sugestões ao enviar
     displayChatMessage(messageText, 'user');
     chatbotInput.value = '';
     chatbotInput.disabled = true;
@@ -208,10 +297,14 @@ function toggleChatbotWindow() {
         chatbotToggleButton.setAttribute('aria-expanded', 'true');
         chatbotToggleButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>';
         chatbotInput.focus();
+        if (allItemNames.size === 0 && allMaterialNames.size === 0) { // Carregar nomes se ainda não o fez
+            fetchNamesForSuggestions();
+        }
     } else {
         chatbotWindow.classList.remove('active');
         chatbotToggleButton.setAttribute('aria-expanded', 'false');
         chatbotToggleButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12zM7 9h10v2H7zm0 3h7v2H7z"/></svg>';
+        if (chatbotSuggestionsArea) chatbotSuggestionsArea.innerHTML = ''; // Limpa sugestões ao fechar
         setTimeout(() => {
             if (!isChatbotOpen) chatbotWindow.style.display = 'none';
         }, 300);
@@ -234,10 +327,25 @@ async function initializeChatbotUI() {
                 handleSendMessage();
             }
         });
+        chatbotInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                updateChatbotSuggestions(chatbotInput.value);
+            }, 300); // Atraso de 300ms para debounce
+        });
+        chatbotInput.addEventListener('blur', () => {
+            // Pequeno atraso para permitir o clique na sugestão antes de limpar
+            setTimeout(() => {
+                 if (chatbotSuggestionsArea && !chatbotSuggestionsArea.matches(':hover')) { // Não limpar se o mouse estiver sobre as sugestões
+                    chatbotSuggestionsArea.innerHTML = '';
+                }
+            }, 200);
+        });
     }
     
     try {
         await chatbotService.initChatbot();
+        fetchNamesForSuggestions(); // Carrega nomes ao inicializar o chatbot
     } catch (error) {
         console.error("Falha ao inicializar o chatbotService no main.js:", error);
         displayChatMessage(`Não foi possível iniciar o assistente: ${error.message}. Verifique sua API Key do Gemini.`, 'bot');
