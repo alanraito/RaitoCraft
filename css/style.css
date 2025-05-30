@@ -2,14 +2,14 @@
   Arquivo: style.css
   Descrição: Este arquivo contém todas as regras de estilo CSS para a aplicação Calculadora de Craft Pokexgames.
   Ele define a aparência visual de todos os elementos da interface, incluindo layout, cores, fontes,
-  responsividade (com foco no menu hambúrguer para mobile), temas (claro/escuro) e estilos para
-  componentes interativos como o chatbot e suas sugestões.
+  responsividade (com foco no menu hambúrguer SVG para mobile e sua estética aprimorada), temas (claro/escuro)
+  e estilos para componentes interativos como o chatbot e suas sugestões.
   Principais Seções:
   - Reset Básico e Configurações Globais.
   - Variáveis de Cor e Tema.
   - Utilitários.
   - Estilos para Transição de Página.
-  - Header e Navegação (incluindo o comportamento do menu hambúrguer mobile).
+  - Header e Navegação (incluindo o comportamento e estilo do menu hambúrguer SVG mobile).
   - Conteúdo Principal e Seções de Página (Home, About, etc.).
   - Formulários, Botões, Mensagens de Status.
   - Cards de Item, Modais.
@@ -32,7 +32,7 @@ body {
     color: var(--text-color);
     background-color: var(--background-color);
     transition: background-color 0.3s, color 0.3s;
-    padding-top: 70px; /* Ajustado para altura do header mobile */
+    padding-top: var(--header-height-desktop); 
     overflow-x: hidden;
 }
 
@@ -88,8 +88,8 @@ body {
     --chatbot-bot-message-bg-light: #eef2f7; 
     --chatbot-bot-message-text-light: var(--text-color);
 
-    --header-height-desktop: 80px;
-    --header-height-mobile: 56px; /* Definindo uma altura para o header mobile */
+    --header-height-desktop: 70px; 
+    --header-height-mobile: 60px; 
 }
 
 html[data-theme="dark"] {
@@ -132,10 +132,6 @@ html[data-theme="dark"] {
     --background-alt-color: #2d3748;
     --chatbot-bot-message-bg-dark: #303a4b;  
     --chatbot-bot-message-text-dark: var(--text-color);
-}
-
-body { /* Redefinido para usar a variável de altura do header */
-    padding-top: var(--header-height-desktop);
 }
 
 
@@ -212,10 +208,10 @@ body { /* Redefinido para usar a variável de altura do header */
 .main-header {
     background-color: var(--primary-color);
     color: var(--button-primary-text);
-    padding: 0 25px; /* Padding vertical removido para ser controlado pela altura */
+    padding: 0 25px; 
     height: var(--header-height-desktop);
-    display: flex; /* Para alinhar header-content verticalmente */
-    align-items: center; /* Para alinhar header-content verticalmente */
+    display: flex; 
+    align-items: center; 
     position: fixed;
     top: 0;
     left: 0;
@@ -233,7 +229,7 @@ body { /* Redefinido para usar a variável de altura do header */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 100%; /* Para ocupar o espaço do .main-header */
+    width: 100%; 
     max-width: 1200px;
     margin: 0 auto;
 }
@@ -244,7 +240,7 @@ body { /* Redefinido para usar a variável de altura do header */
     font-weight: 700;
 }
 
-.main-navigation { /* Estilos base para desktop */
+.main-navigation { 
     display: flex;
 }
 
@@ -258,7 +254,7 @@ body { /* Redefinido para usar a variável de altura do header */
     font-size: 0.95em; 
     font-weight: 500;
     border-radius: var(--border-radius-small);
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, color 0.2s;
 }
 
 .main-navigation button:hover,
@@ -267,20 +263,22 @@ body { /* Redefinido para usar a variável de altura do header */
 }
 
 #hamburger-button {
-    display: none;
+    display: none; 
     background: none;
     border: none;
-    color: var(--button-primary-text); /* Para garantir que o X do SVG seja da cor correta */
+    color: var(--button-primary-text); 
     cursor: pointer;
-    padding: 8px; /* Para aumentar a área de toque */
-    margin: -8px; /* Para compensar o padding */
+    padding: 8px; 
+    margin: -8px; 
     z-index: 1001;
+    line-height: 0; 
 }
-/* O SVG do hambúrguer/X já é alterado via JS, não precisa de CSS para os spans aqui se o SVG for usado */
+
 #hamburger-button svg { 
-    width: 28px;
-    height: 28px;
+    width: 25px; 
+    height: 25px; 
     display: block;
+    fill: currentColor; 
 }
 
 
@@ -858,7 +856,7 @@ html[data-theme="dark"] .input-warning {
     cursor: pointer;
     box-shadow: 0 3px 8px rgba(0,0,0,0.15); 
     z-index: 1000; 
-    transition: transform 0.2s;
+    transition: transform 0.2s, right 0.3s, left 0.3s; 
 }
 #dark-mode-toggle:hover {
     transform: scale(1.05);
@@ -907,8 +905,8 @@ html[data-theme="dark"] .input-warning {
     right: 20px;
     width: 360px; 
     max-width: calc(100vw - 40px);
-    height: 60vh; /* Altura reduzida */
-    max-height: 480px; /* Limite máximo um pouco menor */
+    height: 60vh; 
+    max-height: 480px; 
     background-color: var(--card-bg-color);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-base); 
@@ -917,17 +915,24 @@ html[data-theme="dark"] .input-warning {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: opacity 0.3s, transform 0.3s;
-    transform: translateY(10px);
     opacity: 0;
+    transform: translateY(30px); 
     pointer-events: none; 
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
 }
 
 .chatbot-window.active {
-    transform: translateY(0);
     opacity: 1;
+    transform: translateY(0); 
     pointer-events: auto; 
 }
+.chatbot-window .chatbot-header { 
+    cursor: grab;
+}
+.chatbot-window.dragging .chatbot-header {
+    cursor: grabbing;
+}
+
 
 .chatbot-header {
     background-color: var(--primary-color);
@@ -972,12 +977,16 @@ html[data-theme="dark"] .input-warning {
 }
 .chatbot-messages-area ul {
     padding-left: 20px; 
+    list-style-position: outside; 
+}
+.chatbot-messages-area li {
+    margin-bottom: 0.25em; 
 }
 .chatbot-messages-area strong { 
     color: inherit; 
-    font-weight: bold; /* Garante que o negrito seja aplicado */
+    font-weight: bold; 
 }
-.chatbot-messages-area em { /* Para itálico do Markdown */
+.chatbot-messages-area em { 
     font-style: italic;
 }
 
@@ -1142,40 +1151,59 @@ html[data-theme="dark"] .suggestion-button:hover {
     .main-header h1 {
         font-size: 1.2em; 
     }
-    .main-navigation { /* Oculto por padrão, mostrado quando .mobile-menu-open */
-        display: none;
+    .main-navigation { 
+        display: none; 
         position: absolute;
         top: var(--header-height-mobile); 
         left: 0;
         width: 100%;
-        background-color: var(--primary-color);
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        padding: 10px 0;
-        flex-direction: column; /* Assegura a direção da coluna quando aberto */
+        background-color: var(--card-bg-color); /* Fundo do menu mobile alterado */
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15); /* Sombra mais pronunciada */
+        padding: 0; /* Removido padding vertical, os botões terão o seu */
+        border-bottom-left-radius: var(--border-radius-base);
+        border-bottom-right-radius: var(--border-radius-base);
+        overflow: hidden; /* Para os cantos arredondados funcionarem com os botões internos */
+        flex-direction: column; 
     }
     .main-navigation.mobile-menu-open {
-        display: flex;
+        display: flex; 
     }
     .main-navigation button {
         display: block;
         width: 100%;
         text-align: left;
-        padding: 12px 20px;
+        padding: 15px 20px; /* Padding aumentado para melhor toque */
         margin: 0;
-        border-radius: 0; /* Sem borda arredondada para itens de menu dropdown */
-        border-bottom: 1px solid color-mix(in srgb, var(--button-primary-text) 20%, transparent);
+        border-radius: 0; 
+        border-bottom: 1px solid var(--border-color-soft); /* Separador mais suave */
+        color: var(--text-color-emphasis); /* Cor do texto dos itens */
+        background-color: transparent; /* Fundo transparente por padrão */
+        font-weight: 500;
     }
     .main-navigation button:last-child {
         border-bottom: none;
     }
+    .main-navigation button.active,
+    .main-navigation button:hover {
+        background-color: var(--primary-color) !important; /* Importante para sobrescrever */
+        color: var(--button-primary-text) !important;
+    }
+    html[data-theme="dark"] .main-navigation button {
+        color: var(--text-color-emphasis);
+        border-bottom-color: var(--border-color);
+    }
+    html[data-theme="dark"] .main-navigation button.active,
+    html[data-theme="dark"] .main-navigation button:hover {
+        background-color: var(--primary-color) !important;
+        color: var(--button-primary-text) !important;
+    }
+
+
     #hamburger-button {
-        display: flex; /* Mudado para flex para alinhar SVG interno se necessário */
+        display: flex; 
         align-items: center;
         justify-content: center;
     }
-    /* Remover spans se o SVG do botão de hambúrguer for definido via JS */
-    #hamburger-button span { display: none; } /* Esconder spans se SVG estiver em uso */
-
 
     .container {
         padding: 0 15px; 
@@ -1207,14 +1235,15 @@ html[data-theme="dark"] .suggestion-button:hover {
 
     #dark-mode-toggle {
         bottom: 15px;
-        right: 15px; 
+        left: 15px; 
+        right: auto; 
     }
     .chatbot-fab { 
         width: 50px; 
         height: 50px;
         font-size: 1.4em;
         bottom: 15px;
-        right: 15px;
+        right: 15px; 
     }
     .chatbot-fab svg {
         width: 24px;
@@ -1226,9 +1255,6 @@ html[data-theme="dark"] .suggestion-button:hover {
         pointer-events: none !important;
         transform: scale(0.8) !important;
     }
-    /* No mobile, quando o chat está aberto, o dark-mode toggle ficará visível no canto */
-    /* Se o FAB do chat for ocultado, não há mais necessidade de mover o dark-mode toggle */
-
 
     .chatbot-window {
         width: calc(100vw - 20px); 
@@ -1237,7 +1263,15 @@ html[data-theme="dark"] .suggestion-button:hover {
         bottom: 10px;
         right: 10px;
         left: 10px;
+        transform: translateY(calc(60vh + 20px)); 
+        opacity: 0;
     }
+    .chatbot-window.active {
+        transform: translateY(0); 
+        opacity: 1;
+    }
+
+
     .chatbot-suggestions-area {
         max-height: 58px; 
         gap: 6px;
