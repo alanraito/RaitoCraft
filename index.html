@@ -2,23 +2,25 @@
 <html lang="pt-BR" data-theme="light"> <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pokexgames Crafting Calculator</title>
+    <title>RaitoCraft - Calculadora de Craft Pokexgames</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
-</head>
+    </head>
 <body>
     <header class="main-header">
         <div class="header-content">
-            <div class="header-title-container"> <h1>Calculadora de Craft - Pokexgames</h1>
+            <div class="header-title-container"> <h1>RaitoCraft</h1>
             </div>
             <nav id="main-nav" class="main-navigation" role="navigation">
-                <button data-page="page-insert">Registrar Item</button>
+                <button data-page="page-home">Início</button>
                 <button data-page="page-calculate">Calcular Lucro</button>
+                <button data-page="page-insert">Registrar Item</button>
                 <button data-page="page-edit">Gerenciar Itens</button>
+                <button data-page="page-about">Sobre</button>
             </nav>
             <button id="hamburger-button" aria-label="Abrir menu" aria-expanded="false">
                 <span></span>
@@ -29,6 +31,43 @@
     </header>
 
     <main class="container">
+
+        <div id="page-home" class="page-view" style="display: none;">
+            <h2 class="page-title">Bem-vindo à RaitoCraft!</h2>
+            <p class="page-description">
+                Sua calculadora de crafting para Pokexgames, projetada para otimizar sua jornada no jogo!
+            </p>
+            <div class="content-section">
+                <h3>Otimize Seus Crafts e Maximize Seus Lucros!</h3>
+                <p>
+                    A RaitoCraft existe para simplificar a complexidade do sistema de crafting no Pokexgames. Com nossa ferramenta, você pode:
+                </p>
+                <ul>
+                    <li><strong>Calcular Lucratividade:</strong> Descubra quais itens são os mais rentáveis para fabricar, comparando custos de materiais com preços de venda no NPC e no mercado.</li>
+                    <li><strong>Gerenciar Receitas:</strong> Registre novas receitas, edite existentes e mantenha um banco de dados completo dos seus crafts.</li>
+                    <li><strong>Analisar Possibilidades:</strong> Verifique quais itens você pode fabricar com os materiais que possui em seu inventário e saiba o que falta para completar outros crafts.</li>
+                    <li><strong>Obter Informações Rápidas:</strong> Utilize nosso assistente de IA para tirar dúvidas sobre receitas, materiais, Pokémon e muito mais!</li>
+                </ul>
+                <p>
+                    Nosso objetivo é fornecer as informações que você precisa para tomar decisões mais inteligentes, economizar tempo e melhorar sua performance e economia dentro do jogo. Comece explorando as seções no menu acima!
+                </p>
+            </div>
+        </div>
+
+        <div id="page-calculate" class="page-view" style="display: none;">
+             <div class="page-header-centered">
+                <h2 class="page-title">Calcular Lucro de Crafting</h2>
+                <p class="page-description">Selecione um item abaixo para calcular o lucro ou use a pesquisa:</p>
+                <div class="search-container">
+                    <label for="calculate-item-search">Pesquisar Item:</label>
+                    <input type="text" id="calculate-item-search" placeholder="Digite o nome do item ou material...">
+                </div>
+            </div>
+            <div id="calculate-item-list" class="item-card-container">
+                  <p id="calculate-loading-message" class="loading-text">Carregando itens...</p>
+            </div>
+            <div id="calculate-status" class="status-message"></div>
+        </div>
 
         <div id="page-insert" class="page-view" style="display: none;">
              <h2 class="page-title">Registrar Novo Item Craftável</h2>
@@ -54,21 +93,6 @@
              <div id="insert-status" class="status-message"></div>
         </div>
 
-        <div id="page-calculate" class="page-view" style="display: none;">
-             <div class="page-header-centered">
-                <h2 class="page-title">Calcular Lucro de Crafting</h2>
-                <p class="page-description">Selecione um item abaixo para calcular o lucro:</p>
-                <div class="search-container">
-                    <label for="calculate-item-search">Pesquisar Item:</label>
-                    <input type="text" id="calculate-item-search" placeholder="Digite o nome do item...">
-                </div>
-            </div>
-            <div id="calculate-item-list" class="item-card-container">
-                  <p id="calculate-loading-message" class="loading-text">Carregando itens...</p>
-            </div>
-            <div id="calculate-status" class="status-message"></div>
-        </div>
-
         <div id="page-edit" class="page-view" style="display: none;">
             <div class="page-header-centered">
                 <h2 class="page-title">Gerenciar Itens Registrados</h2>
@@ -83,6 +107,102 @@
             <div id="edit-status" class="status-message"></div>
             <div id="edit-form-container" class="edit-form-section" style="display: none;"></div>
         </div>
+
+        <div id="page-about" class="page-view" style="display:none;">
+            <h2 class="page-title">Sobre e Guia de Uso da RaitoCraft</h2>
+            <div class="content-section">
+                <p>A RaitoCraft foi desenvolvida para auxiliar jogadores de Pokexgames a entenderem e otimizarem o sistema de crafting, tornando suas decisões mais estratégicas e sua jogabilidade mais eficiente.</p>
+
+                <h3>Como Usar a Calculadora:</h3>
+                <ul>
+                    <li>
+                        <strong>Início:</strong> Apresenta uma visão geral da aplicação e suas funcionalidades.
+                    </li>
+                    <li>
+                        <strong>Calcular Lucro:</strong>
+                        <ul>
+                            <li>Navegue ou pesquise pelo item que deseja fabricar.</li>
+                            <li>Clique em "Calcular Lucro" no card do item.</li>
+                            <li>No modal, informe a quantidade de "packs" da receita que você pretende fazer.</li>
+                            <li>Insira os preços de mercado atuais para cada material. Se um material for de "profissão", você pode opcionalmente adicionar um custo monetário para ele.</li>
+                            <li>Informe o preço de venda do item final no mercado (por pack).</li>
+                            <li>Clique em "Confirmar Cálculo" para ver o custo total, receitas (NPC e mercado) e os lucros potenciais.</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <strong>Registrar Item:</strong>
+                        <ul>
+                            <li>Preencha o nome do item/pack final.</li>
+                            <li>Indique a quantidade que a receita produz.</li>
+                            <li>Informe o preço de venda do pack para o NPC (se houver).</li>
+                            <li>Adicione cada material necessário: nome, quantidade, tipo ('buy', 'drop', 'profession') e o preço de referência do material no NPC (se 'buy' ou 'drop').</li>
+                            <li>Clique em "Salvar Nova Receita".</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <strong>Gerenciar Itens:</strong>
+                        <ul>
+                            <li>Visualize todos os itens registrados.</li>
+                            <li>Use a pesquisa para encontrar itens específicos.</li>
+                            <li>Clique em "Editar" para modificar uma receita (nome, quantidade, preço, materiais).</li>
+                            <li>Clique em "Deletar" para remover uma receita (ação irreversível).</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <strong>Sobre:</strong> Esta página que você está lendo!
+                    </li>
+                </ul>
+
+                <h3>Utilizando o Assistente RaitoCraft (Chatbot):</h3>
+                <p>O assistente IA no canto inferior direito pode responder a diversas perguntas sobre crafting e Pokémon. Experimente perguntar, por exemplo:</p>
+                <ul>
+                    <li><strong>Sobre Receitas e Materiais de Itens:</strong>
+                        <ul>
+                            <li>"Quais materiais preciso para fazer uma Beast Ball?"</li>
+                            <li>"Como faço uma Potion?"</li>
+                            <li>"Me mostre a receita da Great Ball."</li>
+                            <li>"Para fazer 10 packs de Beast Balls, do que vou precisar?"</li>
+                        </ul>
+                    </li>
+                    <li><strong>Sobre Uso de Materiais Específicos:</strong>
+                        <ul>
+                            <li>"O que posso criar usando Ice Crystal?"</li>
+                            <li>"Para que serve Dragon Scale nos crafts?"</li>
+                            <li>"Qual o preço NPC de referência do Iron Ore?"</li>
+                            <li>"Qual a demanda total por Red Apricorn?"</li>
+                        </ul>
+                    </li>
+                    <li><strong>Consultas Gerais de Crafting:</strong>
+                        <ul>
+                            <li>"Qual o preço NPC de uma Potion?"</li>
+                            <li>"Liste todos os itens que posso craftar."</li>
+                            <li>"Qual item dá mais lucro se eu vender para o NPC?"</li>
+                            <li>"Quais itens são feitos apenas com materiais de profissão?"</li>
+                        </ul>
+                    </li>
+                    <li><strong>Análise de Inventário e Planejamento:</strong>
+                        <ul>
+                            <li>"Tenho 50 Iron Ore e 20 Stick, o que consigo fazer agora?"</li>
+                            <li>"Possuo 10 Red Apricorn, o que mais preciso para fazer Pokébolas?"</li>
+                            <li>"Se eu não tiver nenhum material, quais são todos os requisitos para fazer uma Ultra Ball?"</li>
+                        </ul>
+                    </li>
+                    <li><strong>Informações sobre Pokémon (via PokeAPI):</strong>
+                        <ul>
+                            <li>"Me dê os detalhes do Pikachu."</li>
+                            <li>"Quais são as evoluções do Eevee?"</li>
+                            <li>"Contra quais tipos o Charizard é fraco?"</li>
+                            <li>"O que a habilidade Intimidate faz?"</li>
+                        </ul>
+                    </li>
+                </ul>
+                <p>O chatbot tentará entender sua pergunta e buscar as informações diretamente. Seja claro e específico para obter os melhores resultados!</p>
+                <h3>Tema Visual:</h3>
+                <p>Use o botão 🌙/☀️ no canto inferior para alternar entre os temas claro e escuro.</p>
+            </div>
+        </div>
+
+
     </main>
 
     <div id="calculation-modal" class="modal" style="display: none;">
@@ -193,7 +313,7 @@
             <div class="chatbot-input-row">
                 <input type="text" id="chatbot-input" placeholder="Digite sua pergunta...">
                 <button id="chatbot-send-button" class="chatbot-send" aria-label="Enviar mensagem">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20px" height="20px"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2 .01 7z"/></svg>
+                    <svg class="send-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20px" height="20px"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2 .01 7z"/></svg>
                 </button>
             </div>
         </div>
@@ -202,6 +322,7 @@
     <div id="item-preview-modal" class="item-preview-modal" style="display: none;">
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script type="module" src="js/main.js"></script>
 </body>
 </html>

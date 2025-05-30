@@ -2,15 +2,19 @@
   Arquivo: chatbotService.js
   Descrição: Este módulo é responsável por toda a lógica de interação com a API do Gemini
   e por orquestrar as chamadas para APIs externas (RaitoCraft e PokeAPI) com base nas
-  solicitações do modelo de linguagem. Ele define um conjunto abrangente de ferramentas (funções)
-  que o Gemini pode chamar para responder a diversas perguntas sobre receitas de craft,
-  materiais, lucratividade, e informações de Pokémon. O módulo processa as respostas e gerencia
-  o histórico da conversa, incluindo instruções detalhadas no prompt do sistema para lidar com
-  respostas, dados vazios e erros de API de forma clara e direta.
+  solicitações do modelo de linguagem. Ele define um conjunto abrangente e detalhado de
+  ferramentas (funções) que o Gemini pode chamar para responder a uma vasta gama de
+  perguntas sobre receitas de craft, materiais, lucratividade, possibilidades de fabricação,
+  sumário de uso de materiais, e informações detalhadas de Pokémon, como evoluções,
+  efetividade de tipos e detalhes de habilidades. O módulo processa as respostas das APIs e gerencia
+  o histórico da conversa, incluindo instruções específicas no prompt do sistema para garantir
+  que as respostas do chatbot sejam autônomas, diretas, concisas, bem formatadas (usando Markdown
+  para listas hierárquicas e ênfase clara, que será renderizado no chat), e que lidem
+  adequadamente com dados vazios ou erros de API, sempre focando na clareza para o usuário.
   Principais Funções:
-  - initChatbot: Inicializa o chatbot, configurando a API Key do Gemini e o prompt do sistema com diretrizes de comportamento.
+  - initChatbot: Inicializa o chatbot, configurando a API Key do Gemini e o prompt do sistema com diretrizes de comportamento e formatação de resposta.
   - sendMessageToGemini: Envia a mensagem do usuário para o Gemini, incluindo o histórico
-                         e as ferramentas disponíveis, e processa a resposta.
+                         e as ferramentas disponíveis, e processa a resposta de forma autônoma.
   - callApiFunction: Executa a chamada para a API backend do RaitoCraft ou PokeAPI quando
                      solicitado pelo Gemini através de uma function call. Retorna uma estrutura
                      padronizada indicando sucesso ou falha e os dados ou erro correspondente.
@@ -34,13 +38,13 @@ const tools = [
     functionDeclarations: [
       {
         name: 'getRecipeByName',
-        description: "Obtém os detalhes completos de uma receita de craft, incluindo nome do item, quantidade produzida, preço de venda NPC e todos os seus materiais (com nome, quantidade, tipo e preço NPC do material). Use para perguntas como 'Quais são os materiais para [nome do item]?', 'Como faço [nome do item]?', 'Qual a receita de [nome do item]?' ou 'Que itens eu utilizo para fazer [nome do item]?'.",
+        description: "Obtém os detalhes completos de uma receita de craft, incluindo nome do item produzido, quantidade produzida, preço de venda NPC do item final, e a lista de todos os seus materiais (com nome do material, quantidade necessária, tipo do material e preço NPC de referência do material). Essencial para perguntas como 'Quais são os materiais para fazer [nome do item]?', 'Como faço [nome do item]?', 'Qual a receita detalhada de [nome do item]?', 'Mostre-me os ingredientes para [nome do item]', 'Detalhes da receita do [nome do item]', ou 'Que itens eu preciso para criar [nome do item]?'.",
         parameters: {
           type: 'OBJECT',
           properties: {
             itemName: {
               type: 'STRING',
-              description: 'O nome exato do item cuja receita (incluindo materiais) deve ser buscada (ex: "Beast Ball", "Ice Sword").'
+              description: 'O nome exato do item cuja receita (incluindo materiais) deve ser buscada (ex: "Beast Ball", "Hyper Potion"). A busca não diferencia maiúsculas/minúsculas.'
             }
           },
           required: ['itemName']
@@ -48,13 +52,13 @@ const tools = [
       },
       {
         name: 'findCraftsByMaterial',
-        description: 'Obtém uma lista de todos os itens de craft (receitas) que são feitos usando um material específico. A resposta inclui os detalhes dos itens encontrados. Ideal para responder perguntas como "O que posso fazer com [nome do material]?", "Quais crafts usam [nome do material]?" ou "Para que serve [nome do material] em crafts?".',
+        description: 'Busca e retorna uma lista de todos os itens de craft (receitas) que utilizam um material específico em sua composição. A resposta inclui os detalhes dos itens finais que podem ser feitos. Ideal para responder perguntas como "O que posso fazer com [nome do material]?", "Quais crafts usam [nome do material] como ingrediente?", "Para que serve o material [nome do material] na fabricação de itens?", "Liste receitas que contêm [nome do material]", ou "Quais itens são feitos com [nome do material]?".',
         parameters: {
           type: 'OBJECT',
           properties: {
             materialName: {
               type: 'STRING',
-              description: 'O nome exato do material a ser pesquisado (ex: "Ice Crystal", "Dragon Scale").'
+              description: 'O nome exato do material a ser pesquisado (ex: "Ice Crystal", "Dragon Scale", "Herb"). A busca não diferencia maiúsculas/minúsculas.'
             }
           },
           required: ['materialName']
@@ -62,13 +66,13 @@ const tools = [
       },
       {
         name: 'getItemNpcSellPrice',
-        description: "Obtém o preço de venda para NPC de um item craftável específico (o item final, não seus materiais). Útil para perguntas como 'Quanto o NPC paga por [NomeDoItem]?', 'Qual o valor de [NomeDoItem] no NPC?' ou 'Preço NPC do [NomeDoItem]'.",
+        description: "Obtém o preço de venda para NPC de um item craftável específico (o item final, não seus materiais). Útil para perguntas como 'Quanto o NPC paga por [NomeDoItem]?', 'Qual o valor de [NomeDoItem] se eu vender no NPC?', 'Preço de venda NPC do [NomeDoItem]', ou 'Qual o npc_sell_price de [NomeDoItem]?'.",
         parameters: {
           type: 'OBJECT',
           properties: {
             itemName: {
               type: 'STRING',
-              description: 'O nome exato do item cujo preço de venda NPC deve ser buscado.'
+              description: 'O nome exato do item cujo preço de venda NPC deve ser buscado (ex: "Potion", "Great Ball"). A busca não diferencia maiúsculas/minúsculas.'
             }
           },
           required: ['itemName']
@@ -76,25 +80,25 @@ const tools = [
       },
       {
         name: 'listAllCraftableItems',
-        description: "Lista os nomes de itens que podem ser criados (craftados) no jogo. Útil para perguntas como 'Quais são todos os itens craftáveis?', 'Mostre-me a lista de crafts disponíveis' ou 'Que itens posso fazer?'. A resposta pode ser limitada aos primeiros itens se a lista for muito longa, informando o total de itens existentes.",
+        description: "Lista os nomes dos itens que podem ser criados (craftados) e a quantidade produzida por receita. Útil para perguntas como 'Quais são todos os itens craftáveis?', 'Mostre-me a lista de todos os crafts disponíveis', 'Que itens posso fabricar no jogo?', 'Quais receitas existem?', ou 'Liste todos os nomes de receitas'. A resposta pode ser limitada aos primeiros itens se a lista for muito longa, informando o total de itens existentes e quantos estão sendo mostrados.",
         parameters: {
           type: 'OBJECT',
           properties: {
             maxItemsToShow: {
               type: 'NUMBER',
-              description: 'Número máximo de nomes de itens a serem retornados na lista. Padrão é 15 se não especificado.'
+              description: 'Número máximo de nomes de itens a serem retornados na lista. Padrão é 15 se não especificado pelo usuário ou se a pergunta não implicar um limite.'
             }
           }
         }
       },
       {
         name: 'getMostProfitableItemsByNpcPrice',
-        description: 'Calcula e retorna uma lista dos itens de craft mais lucrativos para fabricar, considerando que todos os materiais são obtidos ou avaliados por seus preços de NPC e o item final é vendido também pelo preço de NPC. Os itens são listados do mais lucrativo para o menos. Útil para perguntas como "Qual item dá mais lucro vendendo pra NPC?", "O que compensa mais fazer com preços de NPC?" ou "Quais os crafts mais rentáveis baseados em NPC?".',
+        description: 'Calcula e retorna uma lista dos itens de craft mais lucrativos para fabricar, considerando que todos os materiais são obtidos ou avaliados por seus preços de NPC e o item final é vendido também pelo preço de NPC. Os itens são listados do mais lucrativo para o menos. Útil para perguntas como "Qual item dá mais lucro vendendo pra NPC?", "O que compensa mais fazer e vender no NPC?", "Quais os crafts mais rentáveis baseados em preços de NPC?", "Ranking de lucratividade NPC dos crafts", ou "Qual o melhor item para farmar dinheiro via NPC?".',
         parameters: { type: 'OBJECT', properties: {} }
       },
       {
         name: 'filterItemsByMaterialProfile',
-        description: 'Filtra e retorna itens de craft com base no perfil de tipo de seus materiais. Por exemplo, itens feitos exclusivamente com materiais de profissão, ou itens que não usam materiais de drop, ou que precisam de materiais comprados. Use para perguntas como "Quais itens só usam materiais de profissão?", "Liste crafts sem materiais de drop", "Quais itens usam materiais comprados?" ou "Filtre itens por tipo de material [tipo/perfil]".',
+        description: 'Filtra e retorna itens de craft com base no perfil de tipo de seus materiais (profession, drop, buy). Permite encontrar, por exemplo, itens feitos exclusivamente com materiais de profissão, ou itens que não usam materiais de drop, ou que obrigatoriamente contêm materiais comprados. Use para perguntas como "Quais itens só usam materiais de profissão?", "Liste crafts sem materiais de drop", "Quais itens usam materiais comprados de NPC?", "Existem crafts que misturam materiais de drop e profissão?", ou "Filtre itens por tipo de material: [tipo/perfil]".',
         parameters: {
           type: 'OBJECT',
           properties: {
@@ -113,13 +117,13 @@ const tools = [
       },
       {
         name: 'getMaterialUsageSummary',
-        description: 'Fornece um sumário do uso de materiais em todas as receitas, incluindo a quantidade total necessária do material e em quantas receitas diferentes ele é usado. Pode ser filtrado por nome de material ou tipo de material. Útil para perguntas como "Qual a demanda total por [nome do material]?", "Quantos [nome do material] são usados no total?" ou "Quais materiais do tipo [tipo] são mais usados?".',
+        description: 'Fornece um sumário do uso de materiais em todas as receitas, incluindo a quantidade total necessária do material, em quantas receitas diferentes ele é usado, e o preço NPC de referência do material se um nome específico for consultado. Pode ser filtrado por nome de material ou tipo de material. Útil para perguntas como "Qual a demanda total por [nome do material]?", "Quantos [nome do material] são usados no total em todos os crafts?", "Quais materiais do tipo [tipo] são os mais utilizados?", "Resumo de uso do material [nome do material]", ou "Qual o preço NPC do [nome do material]?".',
         parameters: {
           type: 'OBJECT',
           properties: {
             materialName: {
               type: 'STRING',
-              description: 'O nome (ou parte do nome) de um material específico para filtrar o sumário (ex: "Essence of Fire"). Opcional.'
+              description: 'O nome (ou parte do nome) de um material específico para filtrar o sumário (ex: "Essence of Fire", "potion"). A busca não diferencia maiúsculas/minúsculas. Opcional.'
             },
             materialTypes: {
               type: 'STRING',
@@ -130,13 +134,13 @@ const tools = [
       },
       {
         name: 'checkCraftingPossibilities',
-        description: 'Verifica quais itens de craft podem ser fabricados AGORA com base em uma lista de materiais que o usuário possui e a quantidade de cada um. Responde a perguntas como "Tenho 20 X e 10 Y, o que posso fazer e quantos?", "Com estes materiais [lista de materiais e quantidades], o que consigo fazer?" ou "Verifique minhas possibilidades de craft atuais".',
+        description: 'Verifica quais itens de craft podem ser fabricados IMEDIATAMENTE com base em uma lista exata de materiais que o usuário possui e suas respectivas quantidades. Retorna os itens que podem ser feitos e o máximo de vezes. Responde a perguntas como "Tenho 20 X e 10 Y, o que posso fazer agora e quantos?", "Com estes materiais [lista de materiais e quantidades], o que consigo craftar já?" ou "Verifique minhas possibilidades de fabricação atuais com meu inventário."',
         parameters: {
           type: 'OBJECT',
           properties: {
             availableMaterials: {
               type: 'ARRAY',
-              description: 'Uma lista de materiais que o usuário possui.',
+              description: 'Uma lista de materiais que o usuário possui e suas quantidades.',
               items: {
                 type: 'OBJECT',
                 description: 'Um material que o usuário possui.',
@@ -159,13 +163,13 @@ const tools = [
       },
       {
         name: 'analyzeCraftingPotential',
-        description: "Analisa receitas que podem ser relevantes com base nos materiais que o usuário possui, mesmo que não sejam suficientes para completar o craft. Detalha, para cada receita aplicável, todos os materiais necessários, quanto o usuário possui de cada um, e quanto falta para um craft. Também informa quantos crafts podem ser feitos imediatamente. Use para perguntas como 'Tenho [Material A] e [QtdA] de [MaterialA], o que mais preciso para fazer outros itens?' ou 'Com [Material A] e [Material B], quais crafts posso começar e o que faltaria?'. Se o usuário não especificar materiais, pode analisar todas as receitas.",
+        description: "Analisa receitas que podem ser relevantes com base nos materiais que o usuário possui (mesmo que não sejam suficientes para completar o craft) ou analisa todas as receitas se nenhum material for fornecido. Detalha, para cada receita aplicável, todos os materiais necessários, quanto o usuário possui de cada um, e quanto falta para um craft. Também informa quantos crafts daquela receita podem ser feitos imediatamente com os materiais fornecidos. Use para perguntas como 'Tenho [Material A] e [QtdA] de [MaterialA], o que mais preciso para fazer outros itens?', 'Com [Material A] e [Material B], quais crafts posso começar e o que faltaria para completá-los?', 'Se eu tiver [MaterialX], quais receitas ele ajuda a fazer e o que faltaria?', ou 'Se eu não fornecer nenhum material, mostre todas as receitas e o que preciso para cada uma'.",
         parameters: {
           type: 'OBJECT',
           properties: {
             userMaterials: {
               type: 'ARRAY',
-              description: 'Uma lista de materiais que o usuário possui e suas quantidades. Se omitido ou vazio, analisa todas as receitas mostrando o que é necessário para cada uma.',
+              description: 'Uma lista de materiais que o usuário possui e suas quantidades. Se omitido ou um array vazio for fornecido, analisa todas as receitas mostrando o que é necessário para cada uma.',
               items: {
                 type: 'OBJECT',
                 description: 'Um material que o usuário possui.',
@@ -187,7 +191,7 @@ const tools = [
       },
       {
         name: 'getPokemonDetails',
-        description: 'Obtém informações detalhadas sobre um Pokémon específico da PokeAPI, como seus tipos, habilidades, estatísticas base e número da Pokédex. Ideal para perguntas como "Quais são os tipos do Pikachu?" ou "Me fale sobre o Charizard.". O nome do Pokémon deve ser fornecido em letras minúsculas.',
+        description: 'Obtém informações detalhadas sobre um Pokémon específico da PokeAPI, como seus tipos, habilidades (apenas nomes), estatísticas base e número da Pokédex. Ideal para perguntas como "Quais são os tipos do Pikachu?", "Me fale sobre o Charizard.", "Detalhes do Snorlax", "Quais as habilidades do Gengar?" ou "Informações do Pokémon [NomePokemon]". O nome do Pokémon deve ser fornecido em letras minúsculas.',
         parameters: {
           type: 'OBJECT',
           properties: {
@@ -197,6 +201,48 @@ const tools = [
             }
           },
           required: ['pokemonName']
+        }
+      },
+      {
+        name: 'getPokemonEvolutionChain',
+        description: "Obtém e descreve a cadeia de evolução de um Pokémon específico, mostrando de qual Pokémon ele evolui e para quais Pokémon ele pode evoluir. Útil para perguntas como 'Quais são as evoluções de [PokemonName]?', 'Como [PokemonName] evolui?', 'Mostre a linha evolutiva de [PokemonName]', '[PokemonName] tem evolução?', ou 'Para quem [PokemonName] evolui?'.",
+        parameters: {
+            type: 'OBJECT',
+            properties: {
+                pokemonName: {
+                    type: 'STRING',
+                    description: 'O nome do Pokémon cuja cadeia de evolução deve ser buscada (ex: "pichu", "eevee"). Deve ser em letras minúsculas.'
+                }
+            },
+            required: ['pokemonName']
+        }
+      },
+      {
+        name: 'getPokemonTypeEffectiveness',
+        description: "Descreve as fraquezas, resistências e imunidades de um Pokémon com base em seus tipos. Útil para 'Contra quais tipos [PokemonName] é fraco?', '[PokemonName] é forte contra quais tipos?', 'Quais são as resistências do [PokemonName]?', ou 'Efetividade de tipo do [PokemonName]'.",
+        parameters: {
+            type: 'OBJECT',
+            properties: {
+                pokemonName: {
+                    type: 'STRING',
+                    description: 'O nome do Pokémon para analisar a efetividade de seus tipos (ex: "bulbasaur", "charmander"). Deve ser em letras minúsculas.'
+                }
+            },
+            required: ['pokemonName']
+        }
+      },
+      {
+        name: 'getAbilityDetails',
+        description: "Obtém a descrição detalhada do efeito de uma habilidade (ability) de Pokémon. Útil para 'O que faz a habilidade [NomeHabilidade]?' ou 'Descreva a habilidade [NomeHabilidade]'.",
+        parameters: {
+            type: 'OBJECT',
+            properties: {
+                abilityName: {
+                    type: 'STRING',
+                    description: 'O nome da habilidade a ser pesquisada (ex: "stench", "static", "overgrow"). Deve ser em letras minúsculas e pode usar hífen se o nome da habilidade tiver.'
+                }
+            },
+            required: ['abilityName']
         }
       }
     ]
@@ -220,11 +266,11 @@ export async function initChatbot() {
       history: [
         {
           role: "user",
-          parts: [{ text: "Você é o RaitoCraft Assistant, um chatbot especializado em ajudar usuários com cálculos e informações sobre crafting de itens no jogo Pokexgames, baseado nos dados da API RaitoCraft, e também pode fornecer informações sobre Pokémon utilizando a PokeAPI. Suas respostas devem ser amigáveis, úteis e focadas nos contextos do jogo, do crafting e do universo Pokémon. Você pode usar as ferramentas disponíveis para buscar informações atualizadas das APIs quando necessário. Se uma função da API retornar uma lista vazia (por exemplo, nenhum item encontrado para `getRecipeByName` ou `findCraftsByMaterial`), você deve informar explicitamente ao usuário que 'Nenhum item/receita foi encontrado com os critérios fornecidos para [nome da função].'. Se uma função da API falhar e retornar um erro, você deve informar ao usuário sobre o erro específico que ocorreu ao tentar acessar os dados (por exemplo, 'Houve um problema ao contatar a API ao usar [nome da função]: [detalhes do erro]'), em vez de pedir para o usuário fornecer os dados ou executar comandos. Após uma chamada de função bem-sucedida que retorna dados, apresente esses dados diretamente ao usuário de forma clara e concisa. Não faça introduções vagas como 'A API retornou os seguintes dados:' se você não for apresentar os dados imediatamente ou se for tentar chamar a função novamente. Ao usar 'analyzeCraftingPotential', para cada receita retornada, liste o nome da receita, os materiais necessários, quantos o usuário possui de cada, e quantos faltam para um craft. Indique também quantos crafts completos daquela receita são possíveis no momento com os materiais fornecidos pelo usuário." }],
+          parts: [{ text: "Você é o RaitoCraft Assistant, um chatbot especializado em ajudar usuários com cálculos e informações sobre crafting de itens no jogo Pokexgames, baseado nos dados da API RaitoCraft, e também pode fornecer informações sobre Pokémon utilizando a PokeAPI. Suas respostas devem ser amigáveis, úteis e focadas nos contextos do jogo, do crafting e do universo Pokémon. Use as ferramentas disponíveis para obter todas as informações necessárias ANTES de formular uma resposta. Não anuncie qual ferramenta você está usando nem peça confirmação ao usuário (como 'Ok') antes de prosseguir com a busca de dados. Formule sua resposta final diretamente com base nas informações coletadas pelas ferramentas. Use Markdown para melhor legibilidade: para listas (como listas de materiais ou itens), use marcadores (bullet points, começando cada item com '- ' ou '* '). Para destacar nomes de itens, materiais, Pokémon ou informações importantes, use negrito ('**texto**'). Evite usar asteriscos de forma que apareçam como caracteres soltos ou que dificultem a leitura da estrutura da lista. Se um item de uma lista principal tiver uma sub-lista de componentes (como materiais adicionais para um item craftável), formate esses componentes como uma sub-lista indentada com marcadores. Se a pergunta envolver cálculos (como quantidades para múltiplos packs de um item), realize esses cálculos internamente e apresente o resultado final de forma clara. Seja conciso e direto ao ponto. Por exemplo, se perguntarem 'O que preciso para fazer 10 packs de Beast Balls?', obtenha a receita da Beast Ball, calcule as quantidades totais para 10 packs e responda diretamente: 'Para fazer 10 packs de Beast Balls (totalizando X unidades), você precisará de:' seguido de uma lista de materiais e suas quantidades totais. Se uma função da API retornar uma lista vazia (ex: nenhum item encontrado), informe explicitamente ao usuário que 'Nenhum item/receita foi encontrado com os critérios fornecidos para a sua pergunta sobre [assunto da pergunta].'. Se uma função da API falhar e retornar um erro, informe ao usuário de forma clara: 'Houve um problema ao tentar buscar os dados sobre [assunto da pergunta]: [detalhes do erro da API].'. Ao usar 'analyzeCraftingPotential', para cada receita relevante, liste o nome da receita, os materiais necessários, quantos o usuário possui de cada, e quantos faltam para um craft; indique também quantos crafts completos daquela receita são possíveis no momento com os materiais fornecidos pelo usuário. Ao apresentar dados de Pokémon, como evoluções ou efetividade de tipos, formate a informação de maneira clara e legível, usando listas ou parágrafos curtos." }],
         },
         {
           role: "model",
-          parts: [{ text: "Entendido! Estou pronto para ajudar os jogadores de Pokexgames com seus crafts e também para responder perguntas sobre o universo Pokémon. Se a API não encontrar nada para uma busca, informarei claramente que nenhum resultado correspondeu à função específica. Se ocorrer um erro ao tentar buscar os dados, informarei sobre a falha detalhada da função. Se a busca for bem-sucedida, apresentarei os dados diretamente, incluindo detalhes de materiais faltantes quando relevante. Podem perguntar!" }],
+          parts: [{ text: "Entendido! Estou pronto para ajudar os jogadores de Pokexgames com seus crafts e também para responder perguntas sobre o universo Pokémon. Buscarei as informações e responderei diretamente, usando formatação Markdown clara e estruturada para facilitar a leitura. Se a API não encontrar nada para uma busca, informarei claramente que nenhum resultado correspondeu. Se ocorrer um erro ao tentar buscar os dados, informarei sobre a falha detalhada da função. Se a busca for bem-sucedida, apresentarei os dados diretamente, incluindo detalhes de materiais faltantes quando relevante e formatando informações de Pokémon da melhor forma. Podem perguntar!" }],
         }
       ],
     });
@@ -314,6 +360,27 @@ async function callApiFunction(functionName, args) {
         }
         endpoint = `${POKEAPI_BASE_URL}/pokemon/${args.pokemonName.toLowerCase()}`;
         break;
+      case 'getPokemonEvolutionChain':
+        if (!args.pokemonName) {
+            console.error("[callApiFunction] getPokemonEvolutionChain: Nome do Pokémon não fornecido.");
+            throw new Error("Nome do Pokémon é obrigatório para getPokemonEvolutionChain.");
+        }
+        endpoint = `${POKEAPI_BASE_URL}/pokemon-species/${args.pokemonName.toLowerCase()}`;
+        break;
+      case 'getPokemonTypeEffectiveness':
+        if (!args.pokemonName) {
+            console.error("[callApiFunction] getPokemonTypeEffectiveness: Nome do Pokémon não fornecido.");
+            throw new Error("Nome do Pokémon é obrigatório para getPokemonTypeEffectiveness.");
+        }
+        endpoint = `${POKEAPI_BASE_URL}/pokemon/${args.pokemonName.toLowerCase()}`; 
+        break;
+      case 'getAbilityDetails':
+        if (!args.abilityName) {
+            console.error("[callApiFunction] getAbilityDetails: Nome da Habilidade não fornecido.");
+            throw new Error("Nome da Habilidade é obrigatório para getAbilityDetails.");
+        }
+        endpoint = `${POKEAPI_BASE_URL}/ability/${args.abilityName.toLowerCase()}`;
+        break;
       default:
         console.error(`[callApiFunction] Função desconhecida: ${functionName}`);
         return { success: false, error: `Função desconhecida: ${functionName}` };
@@ -382,6 +449,86 @@ async function callApiFunction(functionName, args) {
                 totalItems: apiData.length,
                 showing: itemsToReturn.length
             }
+        };
+    }
+
+    if (functionName === 'getPokemonEvolutionChain') {
+        if (!apiData.evolution_chain || !apiData.evolution_chain.url) {
+            console.error('[callApiFunction] getPokemonEvolutionChain: URL da cadeia de evolução não encontrada na resposta da espécie.');
+            return { success: false, error: 'Não foi possível encontrar o link para a cadeia de evolução.' };
+        }
+        const evolutionChainUrl = apiData.evolution_chain.url;
+        console.log(`[callApiFunction] getPokemonEvolutionChain: Buscando URL da cadeia de evolução: ${evolutionChainUrl}`);
+        const evoChainResponse = await fetch(evolutionChainUrl);
+        if (!evoChainResponse.ok) {
+            const errorData = await evoChainResponse.text();
+            console.error(`[callApiFunction] getPokemonEvolutionChain: Erro ao buscar dados da cadeia de evolução (${evoChainResponse.status}):`, errorData);
+            return { success: false, error: `Erro ao buscar dados da cadeia de evolução: ${evoChainResponse.status} - ${errorData || evoChainResponse.statusText}` };
+        }
+        const evolutionChainData = await evoChainResponse.json();
+        
+        let evolutions = [];
+        function traverseChain(chainLink) {
+            if (!chainLink) return;
+            evolutions.push(chainLink.species.name);
+            if (chainLink.evolves_to && chainLink.evolves_to.length > 0) {
+                chainLink.evolves_to.forEach(evo => traverseChain(evo));
+            }
+        }
+        traverseChain(evolutionChainData.chain);
+        const uniqueEvolutions = [...new Set(evolutions)];
+        const evolutionPath = uniqueEvolutions.join(' -> ');
+        return { success: true, data: { pokemonName: args.pokemonName, evolutionChain: evolutionPath || 'Nenhuma evolução direta encontrada ou Pokémon já está no estágio final.' } };
+    }
+
+    if (functionName === 'getPokemonTypeEffectiveness') {
+        if (!apiData.types || !Array.isArray(apiData.types)) {
+            return { success: false, error: 'Não foi possível obter os tipos do Pokémon.' };
+        }
+        const typePromises = apiData.types.map(typeInfo => fetch(typeInfo.type.url).then(res => {
+            if(!res.ok) throw new Error(`Falha ao buscar detalhes do tipo ${typeInfo.type.name}: ${res.status}`);
+            return res.json();
+        }));
+        
+        const typeDetails = await Promise.all(typePromises);
+
+        const effectiveness = {
+            takes_2x_from: new Set(), takes_0_5x_from: new Set(), takes_0x_from: new Set(),
+            deals_2x_to: new Set(), deals_0_5x_to: new Set(), deals_0x_to: new Set()
+        };
+
+        typeDetails.forEach(typeData => {
+            typeData.damage_relations.double_damage_from.forEach(t => effectiveness.takes_2x_from.add(t.name));
+            typeData.damage_relations.half_damage_from.forEach(t => effectiveness.takes_0_5x_from.add(t.name));
+            typeData.damage_relations.no_damage_from.forEach(t => effectiveness.takes_0x_from.add(t.name));
+            typeData.damage_relations.double_damage_to.forEach(t => effectiveness.deals_2x_to.add(t.name));
+            typeData.damage_relations.half_damage_to.forEach(t => effectiveness.deals_0_5x_to.add(t.name));
+            typeData.damage_relations.no_damage_to.forEach(t => effectiveness.deals_0x_to.add(t.name));
+        });
+        
+        return { 
+            success: true, 
+            data: {
+                pokemonName: args.pokemonName,
+                types: apiData.types.map(t => t.type.name),
+                effectiveness: {
+                    weak_to: Array.from(effectiveness.takes_2x_from),
+                    resistant_to: Array.from(effectiveness.takes_0_5x_from),
+                    immune_to: Array.from(effectiveness.takes_0x_from),
+                }
+            }
+        };
+    }
+
+    if (functionName === 'getAbilityDetails') {
+        const effectEntry = apiData.effect_entries?.find(entry => entry.language.name === 'en');
+        return { 
+            success: true, 
+            data: { 
+                abilityName: args.abilityName, 
+                effect: effectEntry ? effectEntry.short_effect || effectEntry.effect : "Descrição não encontrada em inglês.",
+                full_description_available: !!(effectEntry && effectEntry.effect)
+            } 
         };
     }
     

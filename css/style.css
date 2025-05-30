@@ -2,26 +2,28 @@
   Arquivo: style.css
   Descrição: Este arquivo contém todas as regras de estilo CSS para a aplicação Calculadora de Craft Pokexgames.
   Ele define a aparência visual de todos os elementos da interface, incluindo layout, cores, fontes,
-  responsividade, temas (claro/escuro) e estilos para componentes interativos como o chatbot e suas sugestões.
+  responsividade, temas (claro/escuro) e estilos para componentes interativos como o chatbot (incluindo
+  cores de fundo de mensagens para melhor legibilidade do negrito) e suas sugestões.
   Principais Seções:
   - Reset Básico e Configurações Globais: Normaliza estilos e define padrões para o corpo da página.
   - Variáveis de Cor e Tema: Define paletas de cores para os temas claro e escuro, facilitando a customização e manutenção.
   - Utilitários: Classes de ajuda como 'container'.
   - Estilos para Transição de Página: Controla as animações ao navegar entre as diferentes seções da aplicação.
-  - Header: Estilização do cabeçalho principal e da navegação.
+  - Header e Navegação: Estilização do cabeçalho principal e da navegação.
+  - Conteúdo Principal e Seções de Página (Home, About, etc.).
   - Formulários: Aparência de labels, inputs, selects e outros elementos de formulário.
   - Botões: Estilos globais e específicos para diferentes tipos de botões.
   - Mensagens de Status: Formatação de mensagens de sucesso, erro, informação e carregamento.
   - Abas de Inserção, Cálculo e Edição: Títulos e descrições de página.
   - Container de Materiais: Layout para a entrada de materiais nos formulários.
   - Pesquisa de Item: Estilo para campos de busca.
-  - Cards de Item: Aparência dos cards que exibem os itens nas seções de cálculo e edição, incluindo o preview de materiais.
+  - Cards de Item: Aparência dos cards que exibem os itens, incluindo o preview de materiais.
   - Modal Genérico: Estilos base para todas as janelas modais.
   - Modal de Cálculo Específico: Estilos para os elementos dentro do modal de cálculo de lucro.
   - Validação de Inputs de Lote: Estilos visuais para indicar inputs válidos, inválidos ou com aviso.
   - Footer: Estilização do rodapé da página.
   - Botão Dark Mode Toggle: Aparência do botão para alternar entre temas.
-  - Estilos do Chatbot: Aparência do FAB, janela do chat, mensagens, input e área de sugestões.
+  - Estilos do Chatbot: Aparência do FAB, janela do chat (incluindo ajustes mobile), mensagens, input e área de sugestões.
   - Responsividade: Media queries para ajustar o layout e a aparência em dispositivos móveis.
 */
 
@@ -39,7 +41,7 @@ body {
     color: var(--text-color);
     background-color: var(--background-color);
     transition: background-color 0.3s, color 0.3s;
-    padding-top: 70px;
+    padding-top: 80px; 
     overflow-x: hidden;
 }
 
@@ -53,17 +55,17 @@ body {
     --light-color: #f8f9fa;
     --dark-color: #343a40;
 
-    --background-color: #ffffff;
-    --text-color: #212529;
-    --text-color-secondary: #6c757d;
+    --background-color: #f4f7f9; 
+    --text-color: #333;
+    --text-color-secondary: #555;
     --text-color-emphasis: var(--primary-color);
-    --border-color: #dee2e6;
-    --border-color-soft: #f0f0f0;
+    --border-color: #d1d9e0; 
+    --border-color-soft: #e3e8ed;
     --input-border-color: #ced4da;
     --input-bg-color: #fff;
     --card-bg-color: #ffffff;
-    --card-shadow-color: rgba(0, 0, 0, 0.075);
-    --card-shadow-color-expanded: rgba(0,0,0,0.15);
+    --card-shadow-color: rgba(0, 0, 0, 0.08); 
+    --card-shadow-color-expanded: rgba(0,0,0,0.12);
     --modal-backdrop-color: rgba(0, 0, 0, 0.5);
     --link-color: var(--primary-color);
     --button-primary-bg: var(--primary-color);
@@ -73,45 +75,50 @@ body {
     --button-danger-bg: var(--danger-color);
     --button-danger-text: #ffffff;
 
-    --highlight-bg-color-light: #f0f0f0;
-    --highlight-border-color-light: #cccccc;
-    --highlight-bg-color-dark: #3a3a3a;
-    --highlight-border-color-dark: #555555;
+    --highlight-bg-color-light: #e9ecef; 
+    --highlight-border-color-light: #ced4da;
+    --highlight-bg-color-dark: #2c3034;
+    --highlight-border-color-dark: #495057;
     --highlight-bg-color: var(--highlight-bg-color-light);
     --highlight-border-color: var(--highlight-border-color-light);
 
-    --color-success: green;
-    --color-success-bg: #e6ffed;
-    --color-danger: red;
-    --color-danger-bg: #ffe6e6;
-    --color-warning: orange;
-    --color-warning-bg: #fff8e6;
+    --color-success: #28a745;
+    --color-success-bg: #d4edda;
+    --color-danger: #dc3545;
+    --color-danger-bg: #f8d7da;
+    --color-warning: #ffc107;
+    --color-warning-bg: #fff3cd;
 
-    --background-alt-color: #f9f9f9;
-    --item-card-fixed-width: 320px;
+    --background-alt-color: #e9ecef; 
+    --item-card-fixed-width: 300px; 
+    --border-radius-base: 8px; 
+    --border-radius-small: 4px;
+
+    --chatbot-bot-message-bg-light: #eef2f7; 
+    --chatbot-bot-message-text-light: var(--text-color);
 }
 
 html[data-theme="dark"] {
     --primary-color: #0d6efd;
-    --secondary-color: #7a828a;
+    --secondary-color: #7a828a; 
     --success-color: #198754;
-    --danger-color: #dc3545;
-    --warning-color: #ffc107;
+    --danger-color: #e53e3e; 
+    --warning-color: #f6ad55;
     --info-color: #0dcaf0;
-    --light-color: #adb5bd;
-    --dark-color: #f8f9fa;
+    --light-color: #4a5568; 
+    --dark-color: #e2e8f0;  
 
-    --background-color: #121212;
-    --text-color: #e0e0e0;
-    --text-color-secondary: #a0a0a0;
-    --text-color-emphasis: #66b3ff;
-    --border-color: #3a3a3a;
-    --border-color-soft: #2c2c2c;
-    --input-border-color: #4a4a4a;
-    --input-bg-color: #2c2c2c;
-    --card-bg-color: #1e1e1e;
-    --card-shadow-color: rgba(0, 0, 0, 0.25);
-    --card-shadow-color-expanded: rgba(0,0,0,0.4);
+    --background-color: #1a202c; 
+    --text-color: #e2e8f0;
+    --text-color-secondary: #a0aec0;
+    --text-color-emphasis: #63b3ed; 
+    --border-color: #2d3748;
+    --border-color-soft: #4a5568;
+    --input-border-color: #4a5568;
+    --input-bg-color: #2d3748;
+    --card-bg-color: #252c39; 
+    --card-shadow-color: rgba(0, 0, 0, 0.2);
+    --card-shadow-color-expanded: rgba(0,0,0,0.3);
     --modal-backdrop-color: rgba(0, 0, 0, 0.7);
     --link-color: var(--text-color-emphasis);
     --button-primary-bg: var(--primary-color);
@@ -124,20 +131,21 @@ html[data-theme="dark"] {
     --highlight-bg-color: var(--highlight-bg-color-dark);
     --highlight-border-color: var(--highlight-border-color-dark);
 
-    --color-success-bg: #1c3d1c;
-    --color-danger-bg: #3d1c1c;
-    --color-warning-bg: #3d301c;
+    --color-success-bg: #2f543a;
+    --color-danger-bg: #5e2d2d;
+    --color-warning-bg: #6b4828;
 
-    --background-alt-color: #252525;
+    --background-alt-color: #2d3748;
+    --chatbot-bot-message-bg-dark: #303a4b;  
+    --chatbot-bot-message-text-dark: var(--text-color);
 }
-
 
 
 .page-view {
     background-color: var(--card-bg-color);
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px var(--card-shadow-color);
+    padding: 25px; 
+    border-radius: var(--border-radius-base);
+    box-shadow: 0 4px 15px var(--card-shadow-color); 
     width: 100%;
     position: absolute;
     top: 0;
@@ -149,7 +157,7 @@ html[data-theme="dark"] {
 }
 
 .page-view.page-animating {
-    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
 }
 
 .page-view.page-active {
@@ -206,13 +214,13 @@ html[data-theme="dark"] {
 .main-header {
     background-color: var(--primary-color);
     color: var(--button-primary-text);
-    padding: 10px 20px;
+    padding: 15px 25px; 
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     z-index: 1000;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15); 
     transition: transform 0.3s ease-out;
 }
 
@@ -229,25 +237,27 @@ html[data-theme="dark"] {
 }
 
 .main-header h1 {
-    font-size: 1.5em;
+    font-size: 1.6em; 
     margin: 0;
+    font-weight: 700;
 }
 
 .main-navigation button {
     background-color: transparent;
     color: var(--button-primary-text);
     border: none;
-    padding: 10px 15px;
+    padding: 10px 18px; 
     margin: 0 5px;
     cursor: pointer;
-    font-size: 1em;
-    border-radius: 4px;
+    font-size: 0.95em; 
+    font-weight: 500;
+    border-radius: var(--border-radius-small);
     transition: background-color 0.2s;
 }
 
 .main-navigation button:hover,
 .main-navigation button.active {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.15); 
 }
 
 #hamburger-button {
@@ -279,13 +289,48 @@ html[data-theme="dark"] {
     transform: translateY(-8px) rotate(-45deg);
 }
 
-.form-group {
+.content-section {
+    background-color: var(--card-bg-color); 
+    padding: 25px; 
+    border-radius: var(--border-radius-base); 
+    margin-top: 20px;
+    box-shadow: 0 2px 8px var(--card-shadow-color); 
+}
+.content-section h3 {
+    color: var(--text-color-emphasis);
+    margin-top: 0;
     margin-bottom: 15px;
+    font-size: 1.4em;
+}
+.content-section p, .content-section li {
+    color: var(--text-color-secondary);
+    margin-bottom: 10px;
+    font-size: 1em;
+    line-height: 1.7; 
+}
+.content-section ul {
+    list-style-type: disc;
+    padding-left: 25px;
+    margin-bottom: 15px;
+}
+.content-section ul ul {
+    list-style-type: circle;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+.content-section strong {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+
+.form-group {
+    margin-bottom: 20px; 
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 8px; 
     font-weight: 500;
     color: var(--text-color);
 }
@@ -299,59 +344,66 @@ html[data-theme="dark"] {
 .form-group input[type="number"],
 .form-group select {
     width: 100%;
-    padding: 10px;
+    padding: 12px; 
     border: 1px solid var(--input-border-color);
-    border-radius: 4px;
+    border-radius: var(--border-radius-small); 
     font-size: 1em;
     background-color: var(--input-bg-color);
     color: var(--text-color);
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 .form-group input:focus, .form-group select:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--primary-color) 25%, transparent);
 }
 
 .sub-title {
-    margin-top: 20px;
-    margin-bottom: 10px;
-    font-size: 1.2em;
+    margin-top: 25px; 
+    margin-bottom: 15px; 
+    font-size: 1.3em; 
     color: var(--text-color-emphasis);
     border-bottom: 1px solid var(--border-color);
-    padding-bottom: 5px;
+    padding-bottom: 8px; 
 }
 .sub-title-small {
-    margin-top: 15px;
-    margin-bottom: 8px;
-    font-size: 1.1em;
+    margin-top: 20px; 
+    margin-bottom: 10px; 
+    font-size: 1.15em; 
     font-weight: 500;
 }
 
 hr {
     border: 0;
     height: 1px;
-    background-color: var(--border-color);
-    margin: 20px 0;
+    background-color: var(--border-color-soft); 
+    margin: 25px 0; 
 }
 
 .button, button {
-    padding: 10px 15px;
+    padding: 12px 20px; 
     font-size: 1em;
-    border-radius: 4px;
+    font-weight: 500;
+    border-radius: var(--border-radius-base); 
     cursor: pointer;
-    transition: background-color 0.2s, opacity 0.2s;
+    transition: background-color 0.2s, opacity 0.2s, transform 0.1s;
     border: none;
     text-align: center;
     flex-shrink: 0;
 }
+.button:hover:not(:disabled), button:hover:not(:disabled) {
+    transform: translateY(-1px); 
+}
 button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    transform: translateY(0);
 }
 
 .button-primary {
     background-color: var(--button-primary-bg);
     color: var(--button-primary-text);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 .button-primary:hover:not(:disabled) {
     background-color: color-mix(in srgb, var(--button-primary-bg) 85%, black);
@@ -360,6 +412,7 @@ button:disabled {
 .button-secondary {
     background-color: var(--button-secondary-bg);
     color: var(--button-secondary-text);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 .button-secondary:hover:not(:disabled) {
     background-color: color-mix(in srgb, var(--button-secondary-bg) 85%, black);
@@ -368,71 +421,91 @@ button:disabled {
 .button-danger {
     background-color: var(--button-danger-bg);
     color: var(--button-danger-text);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 .button-danger:hover:not(:disabled) {
     background-color: color-mix(in srgb, var(--button-danger-bg) 85%, black);
 }
 
 .button-xsmall {
-    padding: 2px 6px !important;
-    font-size: 0.75em !important;
+    padding: 3px 8px !important; 
+    font-size: 0.8em !important;
     min-width: auto !important;
-    line-height: 1.2 !important;
+    line-height: 1.3 !important;
+    border-radius: var(--border-radius-small) !important;
 }
 .add-pair-button.button-small {
-    padding: 4px 8px;
-    font-size: 0.8em;
+    padding: 5px 10px; 
+    font-size: 0.85em; 
     margin-top: 5px;
+    border-radius: var(--border-radius-small);
 }
 
 .status-message {
-    padding: 10px;
-    margin-top: 15px;
-    border-radius: 4px;
+    padding: 12px 15px; 
+    margin-top: 20px; 
+    border-radius: var(--border-radius-small); 
     font-weight: 500;
     text-align: center;
     display: none;
     flex-shrink: 0;
 }
 .status-success {
-    background-color: var(--success-color);
-    color: var(--button-primary-text);
+    background-color: var(--color-success-bg);
+    color: color-mix(in srgb, var(--color-success) 80%, black);
+    border: 1px solid var(--color-success);
 }
 .status-error {
-    background-color: var(--danger-color);
-    color: var(--button-primary-text);
+    background-color: var(--color-danger-bg);
+    color: color-mix(in srgb, var(--color-danger) 80%, black);
+    border: 1px solid var(--color-danger);
 }
 .status-info {
-    background-color: var(--info-color);
-    color: var(--button-primary-text);
+    background-color: var(--input-bg-color); 
+    color: var(--info-color);
+    border: 1px solid var(--info-color);
+}
+html[data-theme="dark"] .status-info {
+    color: var(--info-color);
+    background-color: var(--input-bg-color);
+    border: 1px solid var(--info-color);
 }
 .status-loading {
-    background-color: var(--warning-color);
-    color: #212529;
+    background-color: var(--color-warning-bg);
+    color: color-mix(in srgb, var(--warning-color) 80%, black);
+    border: 1px solid var(--warning-color);
 }
 
 .page-title {
-    margin-bottom: 20px;
+    margin-bottom: 25px; 
     color: var(--text-color-emphasis);
+    font-size: 1.8em; 
+    text-align: center;
 }
 .page-description {
-    margin-bottom: 15px;
+    margin-bottom: 20px; 
     color: var(--text-color-secondary);
+    text-align: center;
+    font-size: 1.05em;
+}
+.page-header-centered {
+    margin-bottom: 25px;
 }
 
 .materials-container-grid {
     display: grid;
-    gap: 15px;
-    margin-bottom: 15px;
+    gap: 20px; 
+    margin-bottom: 20px; 
 }
 .material-entry {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 10px;
-    padding: 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
+    gap: 15px; 
+    padding: 15px; 
+    border: 1px solid var(--border-color-soft); 
+    border-radius: var(--border-radius-base); 
     align-items: end;
+    background-color: var(--background-alt-color); 
 }
 .material-entry > div {
     display: flex;
@@ -440,36 +513,36 @@ button:disabled {
 }
 .material-entry label {
     font-size: 0.9em;
-    margin-bottom: 3px;
+    margin-bottom: 5px; 
 }
 .material-entry input, .material-entry select {
-    padding: 8px;
+    padding: 10px; 
     font-size: 0.95em;
+    border-radius: var(--border-radius-small);
 }
 .remove-material-button {
     grid-column: -1;
     align-self: end;
     margin-top: 10px;
 }
-.npc-price-field-container {
-}
 
 .search-container {
-    margin-bottom: 20px;
+    margin-bottom: 25px; 
     display: flex;
     flex-direction: column;
+    align-items: center; 
 }
 .search-container label {
-    margin-bottom: 5px;
+    margin-bottom: 8px; 
     font-weight: 500;
 }
 .search-container input[type="text"] {
-    padding: 10px;
+    padding: 12px; 
     border: 1px solid var(--input-border-color);
-    border-radius: 4px;
+    border-radius: var(--border-radius-base); 
     font-size: 1em;
     width: 100%;
-    max-width: 400px;
+    max-width: 450px; 
     background-color: var(--input-bg-color);
     color: var(--text-color);
 }
@@ -477,43 +550,45 @@ button:disabled {
 .item-card-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(var(--item-card-fixed-width), 1fr));
-    gap: 20px;
+    gap: 25px; 
     justify-content: center;
 }
 
 .loading-text, .info-text {
     text-align: center;
     color: var(--text-color-secondary);
-    padding: 20px;
+    padding: 25px; 
     grid-column: 1 / -1;
+    font-size: 1.05em;
 }
 
 .item-card {
     background-color: var(--card-bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 0 2px 4px var(--card-shadow-color);
+    border: 1px solid var(--border-color-soft); 
+    border-radius: var(--border-radius-base); 
+    padding: 20px; 
+    box-shadow: 0 3px 10px var(--card-shadow-color); 
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    transition: all 0.3s ease-in-out;
+    transition: all 0.25s ease-in-out; 
     overflow: hidden;
     position: relative;
     width: var(--item-card-fixed-width);
 }
+.item-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px var(--card-shadow-color-expanded);
+}
 .item-card.highlight-contains-searched-material {
     background-color: var(--highlight-bg-color);
-    border-left: 5px solid var(--highlight-border-color);
+    border-left: 5px solid var(--primary-color); 
 }
 .item-card-expanded {
-    padding-bottom: 10px;
-    box-shadow: 0 4px 12px var(--card-shadow-color-expanded);
+    padding-bottom: 15px; 
+    box-shadow: 0 6px 18px var(--card-shadow-color-expanded); 
     z-index: 10;
     border-left-width: 5px;
-}
-html[data-theme="dark"] .item-card-expanded {
-    box-shadow: 0 4px 12px var(--card-shadow-color-expanded, rgba(0,0,0,0.4));
 }
 
 .item-card-info {
@@ -522,60 +597,58 @@ html[data-theme="dark"] .item-card-expanded {
     flex-grow: 1;
 }
 .item-card-name {
-    margin: 0 0 8px 0;
-    font-size: 1.2em;
+    margin: 0 0 10px 0; 
+    font-size: 1.3em; 
     color: var(--text-color-emphasis);
+    font-weight: 700;
 }
 .item-card-details {
-    font-size: 0.9em;
+    font-size: 0.95em; 
     color: var(--text-color-secondary);
-    margin-bottom: 10px;
+    margin-bottom: 15px; 
     flex-grow: 1;
 }
 .item-card-actions {
-    margin-top: 10px;
+    margin-top: 15px; 
     display: flex;
-    gap: 10px;
+    gap: 12px; 
     flex-shrink: 0;
 }
 .item-card-actions button {
     flex-basis: 0;
     flex-grow: 1;
     max-width: 200px;
+    padding: 10px 15px; 
 }
 
 .item-card-materials-preview {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-color);
+    margin-top: 15px; 
+    padding-top: 15px; 
+    border-top: 1px solid var(--border-color-soft);
     animation: fadeIn 0.3s ease-in-out;
     max-height: 150px;
     overflow-y: auto;
 }
 .materials-preview-title {
     font-weight: 500;
-    margin-bottom: 5px;
-    font-size: 0.9em;
+    margin-bottom: 8px; 
+    font-size: 0.95em; 
     color: var(--text-color-secondary);
 }
 .materials-preview-list {
     list-style: none;
     padding-left: 0;
     margin-bottom: 0;
-    font-size: 0.85em;
+    font-size: 0.9em; 
 }
 .materials-preview-list li {
-    padding: 3px 0;
+    padding: 4px 0; 
     color: var(--text-color);
 }
 .no-materials-text {
     font-style: italic;
     color: var(--text-color-secondary);
-    font-size: 0.85em;
-}
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    font-size: 0.9em; 
 }
 
 .modal {
@@ -594,13 +667,13 @@ html[data-theme="dark"] .item-card-expanded {
 .modal-content {
     background-color: var(--card-bg-color);
     margin: auto;
-    padding: 25px;
+    padding: 30px; 
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--border-radius-base); 
     width: 100%;
-    max-width: 600px;
+    max-width: 650px; 
     position: relative;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15); 
     max-height: calc(100vh - 40px);
     display: flex;
     flex-direction: column;
@@ -617,9 +690,9 @@ html[data-theme="dark"] .item-card-expanded {
 .close-button {
     color: var(--text-color-secondary);
     position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 28px;
+    top: 15px; 
+    right: 20px; 
+    font-size: 30px; 
     font-weight: bold;
     line-height: 1;
     z-index: 1;
@@ -631,9 +704,9 @@ html[data-theme="dark"] .item-card-expanded {
     cursor: pointer;
 }
 .modal-title {
-    margin-bottom: 20px;
+    margin-bottom: 25px; 
     color: var(--text-color-emphasis);
-    font-size: 1.5em;
+    font-size: 1.6em; 
     flex-shrink: 0;
     padding-right: 15px;
 }
@@ -643,9 +716,9 @@ html[data-theme="dark"] .item-card-expanded {
     padding: 0;
 }
 #modal-materials-list li {
-    padding: 10px 0;
+    padding: 12px 0; 
     border-bottom: 1px solid var(--border-color-soft);
-    margin-bottom: 5px;
+    margin-bottom: 8px; 
 }
 #modal-materials-list li:last-child {
     border-bottom: none;
@@ -664,98 +737,79 @@ html[data-theme="dark"] .item-card-expanded {
 .price-qty-pair {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 10px; 
+    margin-bottom: 10px; 
 }
 .price-qty-pair input[type="number"] {
-    padding: 6px 8px;
+    padding: 8px 10px; 
     border: 1px solid var(--input-border-color);
-    border-radius: 4px;
+    border-radius: var(--border-radius-small); 
     font-size: 0.9em;
-    width: 100px;
+    width: 110px; 
     background-color: var(--input-bg-color);
     color: var(--text-color);
-}
-html[data-theme="dark"] .price-qty-pair input[type="number"] {
-    background-color: var(--input-bg-color, #333);
 }
 .price-qty-pair .market-price-input {
     flex-grow: 1;
 }
 .price-qty-pair .market-qty-input {
-     width: 70px;
+     width: 80px; 
 }
 
 .profession-cost-area {
     display: flex;
     align-items: center;
-    gap: 5px;
-    margin-top: 5px;
-    padding: 5px;
+    gap: 8px; 
+    margin-top: 8px; 
+    padding: 8px; 
     background-color: var(--background-alt-color);
-    border-radius: 4px;
+    border-radius: var(--border-radius-small);
 }
 .profession-cost-input {
-    width: 80px;
-    padding: 4px;
+    width: 90px; 
+    padding: 6px; 
     font-size: 0.9em;
     background-color: var(--input-bg-color);
     color: var(--text-color);
     border: 1px solid var(--input-border-color);
-}
-html[data-theme="dark"] .profession-cost-input {
-    background-color: var(--input-bg-color, #333);
-}
-.add-prof-cost-button {
-    margin-left: 10px;
-    vertical-align: middle;
+    border-radius: var(--border-radius-small);
 }
 
 .modal-results-area {
-    margin-top: 15px;
-    padding-top: 15px;
+    margin-top: 20px; 
+    padding-top: 20px; 
     padding-right: 15px;
     border-top: 1px solid var(--border-color);
     flex-shrink: 0;
     overflow-y: auto;
-    max-height: 150px;
+    max-height: 160px; 
 }
 .modal-results-area p {
-    margin-bottom: 8px;
+    margin-bottom: 10px; 
     font-size: 0.95em;
-}
-.modal-results-area strong {
-    font-weight: 500;
-}
-.profit-percentage, .info-text-inline {
-    font-size: 0.9em;
-    margin-left: 5px;
-}
-.info-text-inline {
-    color: var(--text-color-secondary);
 }
 
 #edit-form-container {
-    margin-top: 20px;
-    padding: 20px;
+    margin-top: 25px; 
+    padding: 25px; 
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--border-radius-base); 
     background-color: var(--background-alt-color);
 }
 
 .modal-content > .form-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    margin-top: 15px;
-    padding-top: 15px;
+    gap: 12px; 
+    margin-top: 20px; 
+    padding-top: 20px; 
     padding-right: 15px;
     border-top: 1px solid var(--border-color);
     flex-shrink: 0;
 }
 #calculation-modal .modal-confirm-btn {
-    margin-top: 15px;
-    width: calc(100% - 15px);
+    margin-top: 20px; 
+    width: calc(100% - 15px); 
     margin-left: auto;
     margin-right: auto;
     display: block;
@@ -776,38 +830,43 @@ html[data-theme="dark"] .profession-cost-input {
 html[data-theme="dark"] .input-valid,
 html[data-theme="dark"] .input-invalid,
 html[data-theme="dark"] .input-warning {
-    color: var(--text-color);
+    color: var(--text-color); 
 }
 
 .main-footer {
     text-align: center;
-    padding: 20px;
-    margin-top: 30px;
+    padding: 25px; 
+    margin-top: 40px; 
     background-color: var(--card-bg-color);
     border-top: 1px solid var(--border-color);
     color: var(--text-color-secondary);
     font-size: 0.9em;
     position: relative;
     z-index: 0;
+    box-shadow: 0 -2px 8px var(--card-shadow-color);
 }
 
 #dark-mode-toggle {
     position: fixed;
-    bottom: 85px;
-    right: 20px;
+    bottom: 20px; 
+    right: 90px; 
     background-color: var(--card-bg-color);
     color: var(--text-color);
     border: 1px solid var(--border-color);
-    width: 40px;
-    height: 40px;
+    width: 44px; 
+    height: 44px; 
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2em;
+    font-size: 1.3em; 
     cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    z-index: 1000;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15); 
+    z-index: 1000; 
+    transition: transform 0.2s;
+}
+#dark-mode-toggle:hover {
+    transform: scale(1.05);
 }
 
 /* ESTILOS PARA O CHATBOT */
@@ -818,41 +877,47 @@ html[data-theme="dark"] .input-warning {
     background-color: var(--primary-color);
     color: var(--button-primary-text);
     border: none;
-    width: 56px;
-    height: 56px;
+    width: 60px; 
+    height: 60px; 
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5em;
+    font-size: 1.6em; 
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25); 
     z-index: 1010;
-    transition: background-color 0.3s, transform 0.2s;
+    transition: background-color 0.3s, transform 0.2s, opacity 0.3s;
 }
+.chatbot-fab.hidden-by-chat-window { 
+    opacity: 0 !important; /* Garante que fique oculto */
+    pointer-events: none !important;
+    transform: scale(0.8) !important;
+}
+
 
 .chatbot-fab:hover {
     background-color: color-mix(in srgb, var(--primary-color) 85%, black);
-    transform: scale(1.05);
+    transform: scale(1.08); 
 }
 
 .chatbot-fab svg {
-    width: 28px;
-    height: 28px;
+    width: 30px; 
+    height: 30px; 
 }
 
 .chatbot-window {
     position: fixed;
-    bottom: 90px;
+    bottom: 20px; /* Ajustado para estar acima do FAB ou no mesmo nível se FAB oculto */
     right: 20px;
-    width: 350px;
+    width: 360px; 
     max-width: calc(100vw - 40px);
-    height: 70vh;
-    max-height: 500px;
+    height: 60vh; /* Altura reduzida */
+    max-height: 480px; /* Limite máximo um pouco menor */
     background-color: var(--card-bg-color);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    border-radius: var(--border-radius-base); 
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2); 
     z-index: 1005;
     display: flex;
     flex-direction: column;
@@ -860,71 +925,93 @@ html[data-theme="dark"] .input-warning {
     transition: opacity 0.3s, transform 0.3s;
     transform: translateY(10px);
     opacity: 0;
+    pointer-events: none; /* Não interagir quando oculto */
 }
 
 .chatbot-window.active {
     transform: translateY(0);
     opacity: 1;
+    pointer-events: auto; /* Permitir interação quando ativo */
 }
 
 .chatbot-header {
     background-color: var(--primary-color);
     color: var(--button-primary-text);
-    padding: 10px 15px;
+    padding: 12px 18px; 
     font-weight: 500;
+    font-size: 1.05em; 
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-shrink: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--primary-color) 80%, black);
 }
 
 .chatbot-close {
     background: none;
     border: none;
     color: var(--button-primary-text);
-    font-size: 20px;
+    font-size: 22px; 
     font-weight: bold;
     cursor: pointer;
     padding: 0 5px;
     line-height: 1;
+    opacity: 0.8;
 }
 .chatbot-close:hover {
-    opacity: 0.8;
+    opacity: 1;
 }
 
 .chatbot-messages-area {
     flex-grow: 1;
-    padding: 15px;
+    padding: 18px; 
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px; 
+}
+.chatbot-messages-area p, 
+.chatbot-messages-area ul, 
+.chatbot-messages-area li {
+    margin-bottom: 0.5em; /* Espaçamento entre parágrafos/itens de lista dentro de uma mensagem */
+}
+.chatbot-messages-area ul {
+    padding-left: 20px; /* Indentação para listas */
+}
+.chatbot-messages-area strong { /* Para garantir que o negrito do markdown tenha a cor correta */
+    color: inherit; 
 }
 
 .chatbot-message {
-    padding: 8px 12px;
-    border-radius: 15px;
-    max-width: 80%;
+    padding: 10px 15px; 
+    border-radius: 18px; 
+    max-width: 85%; 
     word-wrap: break-word;
     font-size: 0.95em;
-    line-height: 1.4;
+    line-height: 1.45; 
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .chatbot-message.user {
     background-color: var(--primary-color);
     color: var(--button-primary-text);
-    border-bottom-right-radius: 3px;
+    border-bottom-right-radius: var(--border-radius-small); 
     align-self: flex-end;
     margin-left: auto;
 }
 
 .chatbot-message.bot {
-    background-color: var(--highlight-bg-color);
-    color: var(--text-color);
-    border-bottom-left-radius: 3px;
+    background-color: var(--chatbot-bot-message-bg-light);
+    color: var(--chatbot-bot-message-text-light);
+    border-bottom-left-radius: var(--border-radius-small); 
     align-self: flex-start;
     margin-right: auto;
 }
+html[data-theme="dark"] .chatbot-message.bot {
+    background-color: var(--chatbot-bot-message-bg-dark);
+    color: var(--chatbot-bot-message-text-dark);
+}
+
 
 .chatbot-message.bot-typing {
     background-color: transparent;
@@ -932,9 +1019,10 @@ html[data-theme="dark"] .input-warning {
     font-style: italic;
     align-self: flex-start;
     margin-right: auto;
-    padding: 8px 12px;
-    border-radius: 15px;
-    border-bottom-left-radius: 3px;
+    padding: 10px 15px;
+    border-radius: 18px;
+    border-bottom-left-radius: var(--border-radius-small);
+    box-shadow: none;
 }
 
 .chatbot-message.bot-typing::after {
@@ -956,28 +1044,29 @@ html[data-theme="dark"] .input-warning {
     display: flex;
     flex-direction: column;
     border-top: 1px solid var(--border-color);
-    background-color: var(--background-alt-color);
-    padding: 8px;
+    background-color: var(--card-bg-color); 
+    padding: 10px; 
 }
 
 .chatbot-suggestions-area {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 8px;
-    max-height: 70px; /* 2 linhas de sugestões aprox. */
+    gap: 8px; 
+    margin-bottom: 10px; 
+    max-height: 70px;
     overflow-y: auto;
+    padding: 0 2px; 
 }
 
 .suggestion-button {
     background-color: var(--highlight-bg-color);
     color: var(--text-color-emphasis);
     border: 1px solid var(--border-color-soft);
-    padding: 4px 8px;
-    font-size: 0.85em;
-    border-radius: 12px;
+    padding: 5px 10px; 
+    font-size: 0.88em; 
+    border-radius: 15px; 
     cursor: pointer;
-    transition: background-color 0.2s, border-color 0.2s;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
 }
 
 .suggestion-button:hover {
@@ -998,13 +1087,14 @@ html[data-theme="dark"] .suggestion-button:hover {
 
 .chatbot-input-row {
     display: flex;
+    align-items: center; 
 }
 
 #chatbot-input {
     flex-grow: 1;
-    padding: 10px;
+    padding: 12px 18px; 
     border: 1px solid var(--input-border-color);
-    border-radius: 20px;
+    border-radius: 22px; 
     margin-right: 10px;
     font-size: 0.95em;
     background-color: var(--input-bg-color);
@@ -1013,6 +1103,7 @@ html[data-theme="dark"] .suggestion-button:hover {
 #chatbot-input:focus {
     outline: none;
     border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.15rem color-mix(in srgb, var(--primary-color) 20%, transparent);
 }
 
 .chatbot-send {
@@ -1020,103 +1111,81 @@ html[data-theme="dark"] .suggestion-button:hover {
     color: var(--button-primary-text);
     border: none;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
+    width: 44px; 
+    height: 44px; 
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: background-color 0.2s;
+    flex-shrink: 0; 
 }
 .chatbot-send:hover {
     background-color: color-mix(in srgb, var(--primary-color) 85%, black);
 }
-.chatbot-send svg {
+.chatbot-send svg.send-icon { 
     fill: var(--button-primary-text);
+    width: 22px; 
+    height: 22px; 
+    display: block; 
 }
 
 
 @media (max-width: 768px) {
     body {
-        padding-top: 56px;
-        overflow-x: hidden;
+        padding-top: 50px; /* Ajustado para novo header mobile */
+    }
+    .main-header {
+        padding: 10px 15px; 
     }
     .main-header h1 {
-        font-size: 1.1em;
+        font-size: 1.25em; 
     }
     .main-navigation {
-        display: none;
-        flex-direction: column;
-        width: 100%;
-        background-color: var(--primary-color);
-        position: absolute;
-        top: 56px;
-        left: 0;
-        padding: 10px 0;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .main-navigation.mobile-menu-open {
-        display: flex;
-    }
-    .main-navigation button {
-        display: block;
-        width: 100%;
-        text-align: left;
-        padding: 12px 20px;
-        margin: 0;
-        border-bottom: 1px solid color-mix(in srgb, var(--button-primary-text) 20%, transparent);
-    }
-    .main-navigation button:last-child {
-        border-bottom: none;
-    }
-    #hamburger-button {
-        display: block;
+        top: 50px; /* Ajustado para novo header */
     }
 
     .container {
-        padding: 0 10px;
+        padding: 0 15px; 
     }
 
     .page-view {
-        padding: 15px;
+        padding: 15px; 
+    }
+     .page-title {
+        font-size: 1.5em; 
     }
 
     .item-card-container {
-        grid-template-columns: 1fr;
-    }
-    .item-card {
-        width: auto;
-        max-width: none;
+        gap: 15px; 
     }
 
     .material-entry {
-        grid-template-columns: 1fr;
+        padding: 10px; 
+        gap: 10px; 
     }
-    .remove-material-button {
-        grid-column: 1;
-    }
-
+    
     .modal-content {
-        width: 95%;
-        padding: 20px;
+        width: calc(100% - 20px); 
+        padding: 15px;
         max-height: calc(100vh - 20px);
     }
+     .modal-title {
+        font-size: 1.3em;
+    }
     .modal-body-scrollable {
-        padding-right: 5px;
-        margin-right: -5px;
-    }
-    .modal-title,
-    .modal-results-area,
-    .modal-content > .form-actions {
-        padding-right: 5px;
-    }
-    #calculation-modal .modal-confirm-btn {
-        width: calc(100% - 5px);
+        padding-right: 5px; 
+        margin-right: -5px; 
     }
 
-    .chatbot-fab {
-        width: 50px;
+    #dark-mode-toggle {
+        bottom: 15px;
+        right: 15px;
+    }
+    .chatbot-fab { 
+        width: 50px; /* Reduzido para mobile */
         height: 50px;
+        font-size: 1.4em;
         bottom: 15px;
         right: 15px;
     }
@@ -1124,34 +1193,62 @@ html[data-theme="dark"] .suggestion-button:hover {
         width: 24px;
         height: 24px;
     }
-    #dark-mode-toggle {
-        bottom: 75px;
-        right: 15px;
+
+    /* Esconder o FAB principal (#chatbot-toggle-button) quando a janela do chat estiver ativa em mobile */
+    .chatbot-window.active + #chatbot-toggle-button.chatbot-fab {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transform: scale(0.8) !important;
     }
+     /* Ajustar dark mode toggle para ficar visível se o FAB estiver escondido */
+    .chatbot-window.active ~ #dark-mode-toggle {
+        /* Se o FAB for ocultado, o dark mode pode voltar para a posição original se necessário,
+           ou pode ser ocultado também se preferir.
+           Por enquanto, vamos deixar o dark-mode toggle sempre visível na posição definida acima.
+           Se ele estiver abaixo do FAB quando o chat está fechado, e o FAB é ocultado quando o chat abre,
+           o dark-mode ficará no canto. Se ambos estiverem no mesmo canto, o FAB (z-index: 1010) cobrirá
+           o dark-mode (z-index: 1000).
+           A regra de .hidden-by-chat-window foi para o FAB de abrir o chat, então o dark-mode
+           permanecerá visível em sua posição (que no mobile foi ajustada para right: 15px).
+           Se o FAB for ocultado, o dark-mode será o único botão flutuante visível no canto.
+        */
+    }
+
 
     .chatbot-window {
-        width: calc(100vw - 30px);
-        max-width: none;
-        height: 65vh;
-        max-height: none;
-        bottom: 15px;
-        right: 15px;
-        left: 15px;
-        transform: translateY(100%);
-        opacity: 1;
-    }
-    .chatbot-window.active {
-        transform: translateY(0);
+        width: calc(100vw - 20px); 
+        height: 60vh; 
+        max-height: 450px;
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
     }
     .chatbot-suggestions-area {
-        max-height: 50px; /* Ajuste para mobile se necessário */
+        max-height: 58px; 
+        gap: 6px;
     }
+    .suggestion-button {
+        padding: 4px 8px;
+        font-size: 0.8em;
+    }
+    #chatbot-input {
+        padding: 10px 15px;
+    }
+    .chatbot-send {
+        width: 40px;
+        height: 40px;
+    }
+    .chatbot-send svg.send-icon {
+        width: 20px;
+        height: 20px;
+    }
+
 }
 
-.container {
-    max-width: 960px;
-    margin: 20px auto;
-    padding: 0 20px;
+.container { 
+    max-width: 1200px; 
+    margin: 25px auto; 
+    padding: 0 25px; 
     position: relative;
     overflow-x: hidden;
 }
