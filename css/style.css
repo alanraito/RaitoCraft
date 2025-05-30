@@ -2,29 +2,20 @@
   Arquivo: style.css
   Descrição: Este arquivo contém todas as regras de estilo CSS para a aplicação Calculadora de Craft Pokexgames.
   Ele define a aparência visual de todos os elementos da interface, incluindo layout, cores, fontes,
-  responsividade, temas (claro/escuro) e estilos para componentes interativos como o chatbot (incluindo
-  cores de fundo de mensagens para melhor legibilidade do negrito) e suas sugestões.
+  responsividade (com foco no menu hambúrguer para mobile), temas (claro/escuro) e estilos para
+  componentes interativos como o chatbot e suas sugestões.
   Principais Seções:
-  - Reset Básico e Configurações Globais: Normaliza estilos e define padrões para o corpo da página.
-  - Variáveis de Cor e Tema: Define paletas de cores para os temas claro e escuro, facilitando a customização e manutenção.
-  - Utilitários: Classes de ajuda como 'container'.
-  - Estilos para Transição de Página: Controla as animações ao navegar entre as diferentes seções da aplicação.
-  - Header e Navegação: Estilização do cabeçalho principal e da navegação.
+  - Reset Básico e Configurações Globais.
+  - Variáveis de Cor e Tema.
+  - Utilitários.
+  - Estilos para Transição de Página.
+  - Header e Navegação (incluindo o comportamento do menu hambúrguer mobile).
   - Conteúdo Principal e Seções de Página (Home, About, etc.).
-  - Formulários: Aparência de labels, inputs, selects e outros elementos de formulário.
-  - Botões: Estilos globais e específicos para diferentes tipos de botões.
-  - Mensagens de Status: Formatação de mensagens de sucesso, erro, informação e carregamento.
-  - Abas de Inserção, Cálculo e Edição: Títulos e descrições de página.
-  - Container de Materiais: Layout para a entrada de materiais nos formulários.
-  - Pesquisa de Item: Estilo para campos de busca.
-  - Cards de Item: Aparência dos cards que exibem os itens, incluindo o preview de materiais.
-  - Modal Genérico: Estilos base para todas as janelas modais.
-  - Modal de Cálculo Específico: Estilos para os elementos dentro do modal de cálculo de lucro.
-  - Validação de Inputs de Lote: Estilos visuais para indicar inputs válidos, inválidos ou com aviso.
-  - Footer: Estilização do rodapé da página.
-  - Botão Dark Mode Toggle: Aparência do botão para alternar entre temas.
-  - Estilos do Chatbot: Aparência do FAB, janela do chat (incluindo ajustes mobile), mensagens, input e área de sugestões.
-  - Responsividade: Media queries para ajustar o layout e a aparência em dispositivos móveis.
+  - Formulários, Botões, Mensagens de Status.
+  - Cards de Item, Modais.
+  - Footer, Botão Dark Mode.
+  - Estilos do Chatbot.
+  - Responsividade e Media Queries.
 */
 
 *,
@@ -41,7 +32,7 @@ body {
     color: var(--text-color);
     background-color: var(--background-color);
     transition: background-color 0.3s, color 0.3s;
-    padding-top: 80px; 
+    padding-top: 70px; /* Ajustado para altura do header mobile */
     overflow-x: hidden;
 }
 
@@ -96,6 +87,9 @@ body {
 
     --chatbot-bot-message-bg-light: #eef2f7; 
     --chatbot-bot-message-text-light: var(--text-color);
+
+    --header-height-desktop: 80px;
+    --header-height-mobile: 56px; /* Definindo uma altura para o header mobile */
 }
 
 html[data-theme="dark"] {
@@ -138,6 +132,10 @@ html[data-theme="dark"] {
     --background-alt-color: #2d3748;
     --chatbot-bot-message-bg-dark: #303a4b;  
     --chatbot-bot-message-text-dark: var(--text-color);
+}
+
+body { /* Redefinido para usar a variável de altura do header */
+    padding-top: var(--header-height-desktop);
 }
 
 
@@ -214,7 +212,10 @@ html[data-theme="dark"] {
 .main-header {
     background-color: var(--primary-color);
     color: var(--button-primary-text);
-    padding: 15px 25px; 
+    padding: 0 25px; /* Padding vertical removido para ser controlado pela altura */
+    height: var(--header-height-desktop);
+    display: flex; /* Para alinhar header-content verticalmente */
+    align-items: center; /* Para alinhar header-content verticalmente */
     position: fixed;
     top: 0;
     left: 0;
@@ -232,6 +233,7 @@ html[data-theme="dark"] {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 100%; /* Para ocupar o espaço do .main-header */
     max-width: 1200px;
     margin: 0 auto;
 }
@@ -240,6 +242,10 @@ html[data-theme="dark"] {
     font-size: 1.6em; 
     margin: 0;
     font-weight: 700;
+}
+
+.main-navigation { /* Estilos base para desktop */
+    display: flex;
 }
 
 .main-navigation button {
@@ -264,30 +270,19 @@ html[data-theme="dark"] {
     display: none;
     background: none;
     border: none;
+    color: var(--button-primary-text); /* Para garantir que o X do SVG seja da cor correta */
     cursor: pointer;
-    padding: 0;
+    padding: 8px; /* Para aumentar a área de toque */
+    margin: -8px; /* Para compensar o padding */
     z-index: 1001;
 }
-
-#hamburger-button span {
+/* O SVG do hambúrguer/X já é alterado via JS, não precisa de CSS para os spans aqui se o SVG for usado */
+#hamburger-button svg { 
+    width: 28px;
+    height: 28px;
     display: block;
-    width: 25px;
-    height: 3px;
-    background-color: var(--button-primary-text);
-    margin: 5px 0;
-    transition: all 0.3s ease-in-out;
-    border-radius: 3px;
 }
 
-#hamburger-button.active span:nth-child(1) {
-    transform: translateY(8px) rotate(45deg);
-}
-#hamburger-button.active span:nth-child(2) {
-    opacity: 0;
-}
-#hamburger-button.active span:nth-child(3) {
-    transform: translateY(-8px) rotate(-45deg);
-}
 
 .content-section {
     background-color: var(--card-bg-color); 
@@ -890,7 +885,7 @@ html[data-theme="dark"] .input-warning {
     transition: background-color 0.3s, transform 0.2s, opacity 0.3s;
 }
 .chatbot-fab.hidden-by-chat-window { 
-    opacity: 0 !important; /* Garante que fique oculto */
+    opacity: 0 !important; 
     pointer-events: none !important;
     transform: scale(0.8) !important;
 }
@@ -908,7 +903,7 @@ html[data-theme="dark"] .input-warning {
 
 .chatbot-window {
     position: fixed;
-    bottom: 20px; /* Ajustado para estar acima do FAB ou no mesmo nível se FAB oculto */
+    bottom: 20px; 
     right: 20px;
     width: 360px; 
     max-width: calc(100vw - 40px);
@@ -925,13 +920,13 @@ html[data-theme="dark"] .input-warning {
     transition: opacity 0.3s, transform 0.3s;
     transform: translateY(10px);
     opacity: 0;
-    pointer-events: none; /* Não interagir quando oculto */
+    pointer-events: none; 
 }
 
 .chatbot-window.active {
     transform: translateY(0);
     opacity: 1;
-    pointer-events: auto; /* Permitir interação quando ativo */
+    pointer-events: auto; 
 }
 
 .chatbot-header {
@@ -973,14 +968,19 @@ html[data-theme="dark"] .input-warning {
 .chatbot-messages-area p, 
 .chatbot-messages-area ul, 
 .chatbot-messages-area li {
-    margin-bottom: 0.5em; /* Espaçamento entre parágrafos/itens de lista dentro de uma mensagem */
+    margin-bottom: 0.5em; 
 }
 .chatbot-messages-area ul {
-    padding-left: 20px; /* Indentação para listas */
+    padding-left: 20px; 
 }
-.chatbot-messages-area strong { /* Para garantir que o negrito do markdown tenha a cor correta */
+.chatbot-messages-area strong { 
     color: inherit; 
+    font-weight: bold; /* Garante que o negrito seja aplicado */
 }
+.chatbot-messages-area em { /* Para itálico do Markdown */
+    font-style: italic;
+}
+
 
 .chatbot-message {
     padding: 10px 15px; 
@@ -1133,17 +1133,49 @@ html[data-theme="dark"] .suggestion-button:hover {
 
 @media (max-width: 768px) {
     body {
-        padding-top: 50px; /* Ajustado para novo header mobile */
+        padding-top: var(--header-height-mobile); 
     }
     .main-header {
-        padding: 10px 15px; 
+        height: var(--header-height-mobile);
+        padding: 0 15px; 
     }
     .main-header h1 {
-        font-size: 1.25em; 
+        font-size: 1.2em; 
     }
-    .main-navigation {
-        top: 50px; /* Ajustado para novo header */
+    .main-navigation { /* Oculto por padrão, mostrado quando .mobile-menu-open */
+        display: none;
+        position: absolute;
+        top: var(--header-height-mobile); 
+        left: 0;
+        width: 100%;
+        background-color: var(--primary-color);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        padding: 10px 0;
+        flex-direction: column; /* Assegura a direção da coluna quando aberto */
     }
+    .main-navigation.mobile-menu-open {
+        display: flex;
+    }
+    .main-navigation button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 12px 20px;
+        margin: 0;
+        border-radius: 0; /* Sem borda arredondada para itens de menu dropdown */
+        border-bottom: 1px solid color-mix(in srgb, var(--button-primary-text) 20%, transparent);
+    }
+    .main-navigation button:last-child {
+        border-bottom: none;
+    }
+    #hamburger-button {
+        display: flex; /* Mudado para flex para alinhar SVG interno se necessário */
+        align-items: center;
+        justify-content: center;
+    }
+    /* Remover spans se o SVG do botão de hambúrguer for definido via JS */
+    #hamburger-button span { display: none; } /* Esconder spans se SVG estiver em uso */
+
 
     .container {
         padding: 0 15px; 
@@ -1158,11 +1190,6 @@ html[data-theme="dark"] .suggestion-button:hover {
 
     .item-card-container {
         gap: 15px; 
-    }
-
-    .material-entry {
-        padding: 10px; 
-        gap: 10px; 
     }
     
     .modal-content {
@@ -1180,10 +1207,10 @@ html[data-theme="dark"] .suggestion-button:hover {
 
     #dark-mode-toggle {
         bottom: 15px;
-        right: 15px;
+        right: 15px; 
     }
     .chatbot-fab { 
-        width: 50px; /* Reduzido para mobile */
+        width: 50px; 
         height: 50px;
         font-size: 1.4em;
         bottom: 15px;
@@ -1194,31 +1221,19 @@ html[data-theme="dark"] .suggestion-button:hover {
         height: 24px;
     }
 
-    /* Esconder o FAB principal (#chatbot-toggle-button) quando a janela do chat estiver ativa em mobile */
     .chatbot-window.active + #chatbot-toggle-button.chatbot-fab {
         opacity: 0 !important;
         pointer-events: none !important;
         transform: scale(0.8) !important;
     }
-     /* Ajustar dark mode toggle para ficar visível se o FAB estiver escondido */
-    .chatbot-window.active ~ #dark-mode-toggle {
-        /* Se o FAB for ocultado, o dark mode pode voltar para a posição original se necessário,
-           ou pode ser ocultado também se preferir.
-           Por enquanto, vamos deixar o dark-mode toggle sempre visível na posição definida acima.
-           Se ele estiver abaixo do FAB quando o chat está fechado, e o FAB é ocultado quando o chat abre,
-           o dark-mode ficará no canto. Se ambos estiverem no mesmo canto, o FAB (z-index: 1010) cobrirá
-           o dark-mode (z-index: 1000).
-           A regra de .hidden-by-chat-window foi para o FAB de abrir o chat, então o dark-mode
-           permanecerá visível em sua posição (que no mobile foi ajustada para right: 15px).
-           Se o FAB for ocultado, o dark-mode será o único botão flutuante visível no canto.
-        */
-    }
+    /* No mobile, quando o chat está aberto, o dark-mode toggle ficará visível no canto */
+    /* Se o FAB do chat for ocultado, não há mais necessidade de mover o dark-mode toggle */
 
 
     .chatbot-window {
         width: calc(100vw - 20px); 
         height: 60vh; 
-        max-height: 450px;
+        max-height: 480px;
         bottom: 10px;
         right: 10px;
         left: 10px;
