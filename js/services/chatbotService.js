@@ -26,7 +26,7 @@
   - POKEAPI_BASE_URL: URL base da PokeAPI.
 */
 
-const API_KEY = 'AIzaSyDWUmg0Q2weO3aXf3ivmHFbNmLZAtwEj0Q'; // Substitua pela sua API Key real
+// Substitua pela sua API Key real
 const RAITOCRAFT_API_BASE_URL = 'https://apiraitocraft-07k1.onrender.com/api';
 const POKEAPI_BASE_URL = 'https://pokeapi.co/api/v2';
 
